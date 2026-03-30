@@ -9,7 +9,7 @@ class AppRoutes {
   static const String editTransactionScreen = '/editTransactionScreen';
   static const String monthlyPlanScreen = '/monthlyPlanScreen';
   static const String setupMonthlyPlanScreen = '/setupMonthlyPlanScreen';
-
+  static const String settingsScreen = '/settingsScreen';
   static const String financialGoalsScreen = '/financialGoalsScreen';
   static const String walletsScreen = '/walletsScreen';
   static const String transferHistoryScreen = '/transferHistoryScreen';

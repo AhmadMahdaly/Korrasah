@@ -1,5 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:opration/core/router/app_routes.dart';
+import 'package:opration/features/Settings/manage_categories_screen.dart';
+import 'package:opration/features/Settings/menu_screen.dart';
 import 'package:opration/features/Settings/more_page.dart';
 import 'package:opration/features/auth/presentation/views/login_view.dart';
 import 'package:opration/features/debt/presentation/screens/debts_view.dart';
@@ -14,7 +16,6 @@ import 'package:opration/features/transactions/domain/entities/transaction.dart'
 import 'package:opration/features/transactions/presentation/screens/add_transaction_screen.dart';
 import 'package:opration/features/transactions/presentation/screens/edit_transaction_screen.dart';
 import 'package:opration/features/transactions/presentation/screens/transaction_details_screen.dart';
-import 'package:opration/features/transactions/presentation/screens/widgets/manage_categories_drawer.dart';
 import 'package:opration/features/wallets/presentation/screens/transfer_history_screen.dart';
 import 'package:opration/features/wallets/presentation/screens/wallets_screen.dart';
 
@@ -50,7 +51,7 @@ class RouterGenerationConfig {
       GoRoute(
         path: AppRoutes.manageCategoriesScreen,
         name: AppRoutes.manageCategoriesScreen,
-        builder: (context, state) => const ManageCategoriesDrawer(),
+        builder: (context, state) => const ManageCategoriesScreen(),
       ),
       GoRoute(
         path: AppRoutes.transactionDetailsScreen,
@@ -61,6 +62,11 @@ class RouterGenerationConfig {
         path: AppRoutes.moreScreen,
         name: AppRoutes.moreScreen,
         builder: (context, state) => const MoreView(),
+      ),
+      GoRoute(
+        path: AppRoutes.settingsScreen,
+        name: AppRoutes.settingsScreen,
+        builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
         path: AppRoutes.editTransactionScreen,

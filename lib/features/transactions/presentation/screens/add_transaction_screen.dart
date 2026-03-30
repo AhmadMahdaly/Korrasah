@@ -251,7 +251,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           // 1. نوع المعاملة (Toggle)
                           Text(
                             'نوع المعاملة',
-                            style: AppTextStyles.style14Bold,
+                            style: AppTextStyle.style14Bold,
                           ),
                           10.verticalSpace,
                           Row(
@@ -290,7 +290,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           24.verticalSpace,
 
                           // 2. المبلغ
-                          Text('المبلغ', style: AppTextStyles.style14Bold),
+                          Text('المبلغ', style: AppTextStyle.style14Bold),
                           8.verticalSpace,
                           Container(
                             decoration: BoxDecoration(
@@ -339,7 +339,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           24.verticalSpace,
 
                           // 3. المحفظة
-                          Text('المحفظة', style: AppTextStyles.style14Bold),
+                          Text('المحفظة', style: AppTextStyle.style14Bold),
                           8.verticalSpace,
                           DropdownButtonFormField<String>(
                             initialValue: _selectedWalletId,
@@ -365,7 +365,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           24.verticalSpace,
 
                           // 4. المخصص (Main Category)
-                          Text('المخصص *', style: AppTextStyles.style14Bold),
+                          Text('المخصص *', style: AppTextStyle.style14Bold),
                           8.verticalSpace,
                           DropdownButtonFormField<String>(
                             initialValue: _selectedMainCategoryId,
@@ -400,7 +400,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
                           // 5. الفئة (Sub Category)
                           if (_selectedMainCategoryId != null) ...[
-                            Text('الفئة *', style: AppTextStyles.style14Bold),
+                            Text('الفئة *', style: AppTextStyle.style14Bold),
                             8.verticalSpace,
                             if (subCategories.isEmpty)
                               Container(
@@ -500,7 +500,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           // 6. ملاحظات
                           Text(
                             'ملاحظات (اختياري)',
-                            style: AppTextStyles.style14Bold,
+                            style: AppTextStyle.style14Bold,
                           ),
                           8.verticalSpace,
                           Container(

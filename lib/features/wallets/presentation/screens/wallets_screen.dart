@@ -1,4 +1,4 @@
-// ignore_for_file: no_default_cases
+// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,6 +8,7 @@ import 'package:opration/core/shared_widgets/custom_primary_textfield.dart';
 import 'package:opration/core/shared_widgets/page_header.dart' show PageHeader;
 import 'package:opration/core/theme/colors.dart';
 import 'package:opration/core/theme/text_style.dart';
+import 'package:opration/features/monthly_plan/presentation/controllers/monthly_plan_cubit/monthly_plan_cubit.dart';
 import 'package:opration/features/transactions/domain/entities/transaction.dart';
 import 'package:opration/features/transactions/presentation/controllers/transactions_cubit/transactions_cubit.dart';
 import 'package:opration/features/wallets/domain/entities/wallet.dart';
@@ -504,7 +505,13 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
 
   @override
   Widget build(BuildContext context) {
-    final wallets = (context.read<WalletCubit>().state as WalletLoaded).wallets;
+    final planState = context.read<MonthlyPlanCubit>().state;
+    final incomes = planState.plan?.incomes ?? [];
+
+    if (_sourceWalletId != null &&
+        !incomes.any((i) => i.id == _sourceWalletId)) {
+      _sourceWalletId = null;
+    }
 
     return Padding(
       padding: EdgeInsets.all(20.r),
@@ -590,12 +597,13 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
                 onChanged: (v) => setState(() => _executionType = v!),
               ),
               10.verticalSpace,
+
               DropdownButtonFormField<String>(
                 initialValue: _sourceWalletId,
                 decoration: const InputDecoration(labelText: 'مصدر الفلوس'),
-                items: wallets
+                items: incomes
                     .map(
-                      (w) => DropdownMenuItem(value: w.id, child: Text(w.name)),
+                      (i) => DropdownMenuItem(value: i.id, child: Text(i.name)),
                     )
                     .toList(),
                 onChanged: (v) => setState(() => _sourceWalletId = v),
@@ -674,7 +682,7 @@ void _showTransferDialog(BuildContext context, List<Wallet> wallets) {
           children: [
             Text(
               'نقل مبلغ بين المحافظ',
-              style: AppTextStyles.style18W700.copyWith(
+              style: AppTextStyle.style18W700.copyWith(
                 color: AppColors.primaryTextColor,
               ),
               textAlign: TextAlign.center,
@@ -696,7 +704,7 @@ void _showTransferDialog(BuildContext context, List<Wallet> wallets) {
                               value: w.id,
                               child: Text(
                                 '${w.name} (${w.balance.truncate()} ج.م)',
-                                style: AppTextStyles.style12W500,
+                                style: AppTextStyle.style12W500,
                               ),
                             ),
                           )
@@ -722,7 +730,7 @@ void _showTransferDialog(BuildContext context, List<Wallet> wallets) {
                     CustomPrimaryTextfield(
                       controller: amountController,
                       text: 'المبلغ المراد تحويله',
-                      style: AppTextStyles.style12W500.copyWith(
+                      style: AppTextStyle.style12W500.copyWith(
                         color: AppColors.textGreyColor,
                       ),
                       textInputAction: TextInputAction.done,
@@ -750,7 +758,7 @@ void _showTransferDialog(BuildContext context, List<Wallet> wallets) {
                     onPressed: () => Navigator.pop(ctx),
                     child: Text(
                       'إلغاء',
-                      style: AppTextStyles.style14W500,
+                      style: AppTextStyle.style14W500,
                     ),
                   ),
                   Expanded(
@@ -762,7 +770,7 @@ void _showTransferDialog(BuildContext context, List<Wallet> wallets) {
                               SnackBar(
                                 content: Text(
                                   'لا يمكن التحويل لنفس المحفظة!',
-                                  style: AppTextStyles.style14W500,
+                                  style: AppTextStyle.style14W500,
                                 ),
                               ),
                             );
@@ -779,7 +787,7 @@ void _showTransferDialog(BuildContext context, List<Wallet> wallets) {
                       },
                       child: Text(
                         'تأكيد التحويل',
-                        style: AppTextStyles.style14W500.copyWith(
+                        style: AppTextStyle.style14W500.copyWith(
                           color: AppColors.scaffoldBackgroundLightColor,
                         ),
                       ),

@@ -1,9 +1,13 @@
-// ignore_for_file: inference_failure_on_function_return_type
+// ignore_for_file: inference_failure_on_function_return_type, deprecated_member_use
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opration/core/responsive/responsive_config.dart';
 import 'package:opration/core/shared_widgets/page_header.dart';
+import 'package:opration/core/theme/colors.dart';
+import 'package:opration/core/theme/text_style.dart';
+import 'package:opration/core/theme/themes.dart';
 import 'package:opration/features/monthly_plan/domain/entities/monthly_plan.dart';
 import 'package:opration/features/monthly_plan/presentation/controllers/monthly_plan_cubit/monthly_plan_cubit.dart';
 import 'package:opration/features/transactions/domain/entities/transaction.dart';
@@ -50,7 +54,6 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                   .where((w) => w.type == WalletType.sideLinked)
                   .toList();
 
-              // الحسابات الذكية للميزانية الصفرية
               final totalIncome = plan.totalPlannedIncome;
               final linkedWalletsTotal = linkedWallets.fold(
                 0.0,
@@ -62,14 +65,12 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                   linkedWalletsTotal;
               final unallocated = totalIncome - totalAllocated;
 
-              // حساب الادخار (يمكن ربطه لاحقاً بقيمة محفظة التوفير المتوقعة أو أي مخصص ادخاري)
               const savings = 0.0;
 
               return SingleChildScrollView(
                 padding: EdgeInsets.all(16.r),
                 child: Column(
                   children: [
-                    // 1. الهيدر البنفسجي
                     _buildHeaderCard(
                       totalIncome,
                       totalAllocated,
@@ -81,7 +82,6 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                     _buildSection(
                       context: context,
                       title: 'مصادر الدخل',
-                      buttonColor: const Color(0xFF00A86B),
                       isEmpty: plan.incomes.isEmpty,
                       emptyText: 'لم يتم إضافة مصادر دخل بعد',
                       onAdd: () => _showAddEditIncomeDialog(context, plan),
@@ -93,11 +93,9 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                     ),
                     24.verticalSpace,
 
-                    // 3. المخصصات (الفئات)
                     _buildSection(
                       context: context,
                       title: 'المخصصات',
-                      buttonColor: const Color(0xFF2962FF),
                       isEmpty: plan.expenses.isEmpty,
                       emptyText: 'لم يتم إضافة مخصصات بعد',
                       onAdd: () => _showAddEditAllocationDialog(context, plan),
@@ -109,11 +107,9 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                     ),
                     24.verticalSpace,
 
-                    // 4. المحافظ المرتبطة
                     _buildSection(
                       context: context,
                       title: 'المحافظ المرتبطة',
-                      buttonColor: const Color(0xFF009688),
                       isEmpty: linkedWallets.isEmpty,
                       emptyText: 'لم يتم إضافة محافظ مرتبطة بعد',
                       onAdd: () => _showAddEditLinkedWalletDialog(context),
@@ -125,11 +121,9 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                     ),
                     24.verticalSpace,
 
-                    // 5. الديون والمتكررة
                     _buildSection(
                       context: context,
                       title: 'الديون والمتكررة',
-                      buttonColor: const Color(0xFFFF5A00),
                       isEmpty: plan.debts.isEmpty,
                       emptyText: 'لم يتم إضافة ديون أو معاملات متكررة بعد',
                       onAdd: () => _showAddEditDebtDialog(context, plan),
@@ -140,29 +134,6 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                       ),
                     ),
                     40.verticalSpace,
-
-                    // SizedBox(
-                    //   width: double.infinity,
-                    //   height: 50.h,
-                    //   child: ElevatedButton(
-                    //     style: ElevatedButton.styleFrom(
-                    //       backgroundColor: const Color(0xFF00A86B),
-                    //       shape: RoundedRectangleBorder(
-                    //         borderRadius: BorderRadius.circular(8.r),
-                    //       ),
-                    //     ),
-                    //     onPressed: () =>
-                    //         context.read<MonthlyPlanCubit>().saveCurrentPlan(),
-                    //     child: const Text(
-                    //       'حفظ الميزانية',
-                    //       style: TextStyle(
-                    //         color: Colors.white,
-                    //         fontWeight: FontWeight.bold,
-                    //       ),
-                    //     ),
-                    //   ),
-                    // ),
-                    //  20.verticalSpace,
                   ],
                 ),
               );
@@ -182,13 +153,13 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(24.r),
       decoration: BoxDecoration(
-        color: const Color(0xFF7B42F6),
+        gradient: appGradient(),
+
         borderRadius: BorderRadius.circular(16.r),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // العمود اليمين (الدخل وغير المخصص)
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,7 +192,7 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
               ],
             ),
           ),
-          // العمود اليسار (المخصص والادخار)
+
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -262,7 +233,7 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
   Widget _buildSection({
     required BuildContext context,
     required String title,
-    required Color buttonColor,
+    // required Color buttonColor,
     required bool isEmpty,
     required String emptyText,
     required VoidCallback onAdd,
@@ -276,14 +247,16 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
           children: [
             Text(
               title,
-              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+              style: AppTextStyle.style18Bold.copyWith(
+                color: AppColors.secondaryTextColor,
+              ),
             ),
             ElevatedButton.icon(
               onPressed: onAdd,
               icon: const Icon(Icons.add, size: 16, color: Colors.white),
               label: const Text('إضافة', style: TextStyle(color: Colors.white)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: buttonColor,
+                backgroundColor: AppColors.primaryColor,
                 minimumSize: Size(80.w, 36.h),
                 padding: EdgeInsets.symmetric(horizontal: 12.w),
                 shape: RoundedRectangleBorder(
@@ -316,8 +289,6 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
     );
   }
 
-  // --- عناصر القوائم ---
-  // --- عناصر القوائم ---
   Widget _buildIncomeItem(
     BuildContext context,
     PlannedIncome item,
@@ -335,7 +306,7 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.attach_money, color: const Color(0xFF00A86B), size: 28.r),
+          Icon(Icons.attach_money, color: AppColors.primaryColor, size: 28.r),
           12.horizontalSpace,
           Expanded(
             child: Column(
@@ -343,14 +314,7 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(
-                      item.name,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16.sp,
-                        color: Colors.blue.shade900,
-                      ),
-                    ),
+                    Text(item.name, style: AppTextStyle.style16Bold),
                     if (isDefault)
                       Text(
                         ' (افتراضي)',
@@ -362,7 +326,7 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                   ],
                 ),
                 4.verticalSpace,
-                // عرض تفاصيل الاستلام حسب هل هو ثابت أم متغير
+
                 Text(
                   item.isFixed
                       ? 'يوم ${item.executionDay} - ${item.executionType.label}'
@@ -373,19 +337,22 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
             ),
           ),
 
-          // عرض المبلغ لو ثابت، ولو غير ثابت نكتب "متغير"
           Text(
             item.isFixed ? item.amount.toStringAsFixed(2) : 'متغير',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: item.isFixed ? 18.sp : 14.sp,
-              color: item.isFixed ? Colors.blue.shade900 : Colors.grey.shade600,
+            style: AppTextStyle.style16Bold.copyWith(
+              fontSize: item.isFixed ? 16.sp : 14.sp,
+              color: item.isFixed
+                  ? AppColors.primaryTextColor
+                  : AppColors.secondaryTextColor,
             ),
           ),
           16.horizontalSpace,
 
           IconButton(
-            icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+            icon: const Icon(
+              CupertinoIcons.square_pencil,
+              color: AppColors.primaryColor,
+            ),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
             onPressed: () =>
@@ -393,9 +360,9 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
           ),
 
           if (!isDefault) ...[
-            12.horizontalSpace,
+            // 12.horizontalSpace,
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              icon: const Icon(CupertinoIcons.delete_simple, color: Colors.red),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
               onPressed: () {
@@ -418,6 +385,18 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
     PlannedExpense item,
     MonthlyPlan plan,
   ) {
+    // جلب اسم المحفظة التابع لها المخصص
+    final wallets = (context.read<WalletCubit>().state as WalletLoaded).wallets;
+    final walletName = item.walletId == null
+        ? 'الميزانية الرئيسية'
+        : wallets
+              .firstWhere(
+                (w) => w.id == item.walletId,
+                orElse: () =>
+                    const Wallet(id: '', name: 'محفظة مجهولة', balance: 0),
+              )
+              .name;
+
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
@@ -443,8 +422,9 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                   ),
                 ),
                 4.verticalSpace,
+                // إظهار اسم الميزانية التابع لها المخصص
                 Text(
-                  item.endOfMonthAction.label,
+                  '${item.endOfMonthAction.label} • $walletName',
                   style: TextStyle(color: Colors.grey, fontSize: 12.sp),
                 ),
               ],
@@ -627,7 +607,6 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
     );
   }
 
-  // الدالة المساعدة لترجمة اسم النوع
   String _getExecutionTypeName(ExecutionType type) {
     switch (type) {
       case ExecutionType.auto:
@@ -652,33 +631,30 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
       context,
       isEdit ? 'تعديل مخصص' : 'إضافة مخصص',
       (name, amount, day, type, sourceId, endAction, isFixed, targetWalletId) {
-        // --- الربط السحري بين الميزانية وشاشة إضافة المعاملة ---
         final txCubit = context.read<TransactionCubit>();
-
-        // 1. نبحث هل الفئة دي موجودة أصلاً في الفئات ولا لأ؟ (بالاسم والنوع)
         var category = txCubit.state.allCategories
             .where((c) => c.name == name && c.type == TransactionType.expense)
             .firstOrNull;
 
-        // 2. لو مش موجودة، نكريتها تلقائياً عشان تظهر في شاشة المعاملات
         if (category == null) {
           category = TransactionCategory(
             id: const Uuid().v4(),
             name: name,
             type: TransactionType.expense,
-            colorValue: Colors.blue.value, // لون افتراضي للفئات الجديدة
+            colorValue: Colors.blue.value,
           );
           txCubit.addCategory(category);
         }
 
-        // 3. نحفظ المخصص في الخطة بالـ ID الحقيقي بتاع الفئة
         if (isEdit) {
+          // حفظ walletId
           final updated = itemToEdit.copyWith(
             name: name,
             categoryId: category.id,
             budgetedAmount: amount,
             sourceId: sourceId,
             endOfMonthAction: endAction,
+            walletId: targetWalletId,
           );
           final newList = plan.expenses
               .map((e) => e.id == updated.id ? updated : e)
@@ -694,6 +670,7 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
             budgetedAmount: amount,
             sourceId: sourceId,
             endOfMonthAction: endAction,
+            walletId: targetWalletId,
           );
           context.read<MonthlyPlanCubit>().updatePlan(
             plan.copyWith(expenses: [...plan.expenses, newExpense]),
@@ -702,10 +679,12 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
       },
       showIncomeSource: true,
       showEndOfMonth: true,
+      showExpenseWallet: true, // <-- تفعيل خيار اختيار ميزانية المحفظة
       initialName: itemToEdit?.name,
       initialAmount: itemToEdit?.budgetedAmount,
       initialSourceId: itemToEdit?.sourceId,
       initialEndAction: itemToEdit?.endOfMonthAction,
+      initialTargetWalletId: itemToEdit?.walletId, // تمرير القيمة المحفوظة
     );
   }
 
@@ -721,7 +700,6 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
       context,
       isEdit ? 'تعديل مصدر دخل' : 'إضافة مصدر دخل',
       (name, amount, day, type, sourceId, endAction, isFixed, targetWalletId) {
-        // --- الربط مع فئات الدخل ---
         final txCubit = context.read<TransactionCubit>();
         var category = txCubit.state.allCategories
             .where((c) => c.name == name && c.type == TransactionType.income)
@@ -880,7 +858,6 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
     );
   }
 
-  // الدالة الديناميكية المحدثة
   void _showGenericDialog(
     BuildContext context,
     String title,
@@ -899,6 +876,7 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
     bool showEndOfMonth = false,
     bool showFixedOption = false,
     bool showDepositWallet = false,
+    bool showExpenseWallet = false,
     String? initialName,
     double? initialAmount,
     int? initialDay,
@@ -917,7 +895,8 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
     );
     final dayCtrl = TextEditingController(text: initialDay?.toString() ?? '1');
     var selectedType = initialType ?? PlanExecutionType.manual;
-    var selectedEndAction = initialEndAction ?? EndOfMonthAction.keepRemaining;
+    var selectedEndAction =
+        initialEndAction ?? EndOfMonthAction.transferToSavings;
     var selectedSourceId = initialSourceId;
     var selectedTargetWalletId = initialTargetWalletId;
     var isFixed = initialIsFixed ?? true;
@@ -936,8 +915,11 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
             final wallets =
                 (context.read<WalletCubit>().state as WalletLoaded).wallets;
 
-            // تحديد المحفظة الافتراضية إذا لم تكن محددة مسبقاً (محفظة الميزانية)
-            if (selectedTargetWalletId == null && wallets.isNotEmpty) {
+            // --- التعديل هنا ---
+            // تحديد المحفظة الافتراضية فقط لو كنا بنعرض "محفظة الإيداع" (عشان المخصص لازم يفضل null للميزانية الرئيسية)
+            if (showDepositWallet &&
+                selectedTargetWalletId == null &&
+                wallets.isNotEmpty) {
               selectedTargetWalletId = wallets
                   .firstWhere(
                     (w) => w.type == WalletType.mainBudget,
@@ -955,6 +937,7 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
               ),
               child: SingleChildScrollView(
                 child: Column(
+                  spacing: 4.h,
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -1014,8 +997,7 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                               contentPadding: EdgeInsets.zero,
                               onChanged: (v) => setState(() {
                                 isFixed = v!;
-                                selectedType = PlanExecutionType
-                                    .manual; // إجبار النوع على يدوي
+                                selectedType = PlanExecutionType.manual;
                               }),
                             ),
                           ),
@@ -1024,7 +1006,6 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                       10.verticalSpace,
                     ],
 
-                    // إخفاء هذه الحقول إذا كان الدخل غير ثابت
                     if (isFixed) ...[
                       TextFormField(
                         controller: amountCtrl,
@@ -1081,7 +1062,6 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                       ],
                     ],
 
-                    // محفظة الإيداع (تظهر دائماً للدخل لتعرف أين ستذهب الأموال)
                     if (showDepositWallet) ...[
                       DropdownButtonFormField<String>(
                         initialValue: selectedTargetWalletId,
@@ -1132,7 +1112,42 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                       ),
                       10.verticalSpace,
                     ],
-
+                    // حقل اختيار ميزانية المحفظة للمخصصات
+                    // حقل اختيار ميزانية المحفظة للمخصصات
+                    if (showExpenseWallet) ...[
+                      DropdownButtonFormField<String?>(
+                        value:
+                            selectedTargetWalletId, // null يعبر عن الميزانية الرئيسية
+                        decoration: InputDecoration(
+                          labelText: 'تابع لميزانية أي محفظة؟',
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.r),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('الميزانية الرئيسية'),
+                          ),
+                          ...wallets
+                              .where(
+                                (w) => w.type == WalletType.sideIndependent,
+                              )
+                              .map(
+                                (w) => DropdownMenuItem<String?>(
+                                  value: w.id,
+                                  child: Text(w.name),
+                                ),
+                              ),
+                        ],
+                        onChanged: (v) =>
+                            setState(() => selectedTargetWalletId = v),
+                      ),
+                      10.verticalSpace,
+                    ],
                     if (showEndOfMonth) ...[
                       DropdownButtonFormField<EndOfMonthAction>(
                         initialValue: selectedEndAction,
@@ -1162,7 +1177,6 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
 
                     ElevatedButton(
                       onPressed: () {
-                        // إذا كان غير ثابت، نعتبر المبلغ 0 واليوم 1 افتراضياً لتجنب الأخطاء
                         final amount = isFixed
                             ? (double.tryParse(amountCtrl.text) ?? 0.0)
                             : 0.0;
@@ -1229,31 +1243,4 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
       },
     );
   }
-
-  // void _showAddIncomeDialog(BuildContext context, MonthlyPlan plan) {
-  //   _showGenericDialog(context, 'إضافة مصدر دخل', (
-  //     name,
-  //     amount,
-  //     day,
-  //     type,
-  //     sourceId,
-  //     endAction,
-  //     isFixed,
-  //     targetWalletId,
-  //   ) {
-  //     final newIncome = PlannedIncome(
-  //       id: const Uuid().v4(),
-  //       name: name,
-  //       amount: amount,
-  //       date: DateTime.now(),
-  //       executionDay: day,
-  //       executionType: type,
-  //       isFixed: isFixed,
-  //       targetWalletId: targetWalletId,
-  //     );
-  //     context.read<MonthlyPlanCubit>().updatePlan(
-  //       plan.copyWith(incomes: [...plan.incomes, newIncome]),
-  //     );
-  //   });
-  // }
 }

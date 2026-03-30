@@ -6,8 +6,6 @@ import 'package:opration/core/router/app_routes.dart';
 import 'package:opration/core/shared_widgets/page_header.dart';
 import 'package:opration/features/monthly_plan/domain/entities/monthly_plan.dart';
 import 'package:opration/features/monthly_plan/presentation/controllers/monthly_plan_cubit/monthly_plan_cubit.dart';
-// TODO: استدعاء مسار شاشة التعديل التي سننشئها في الخطوة الثانية
-import 'package:opration/features/monthly_plan/presentation/screens/setup_monthly_plan_screen.dart';
 import 'package:opration/features/transactions/domain/entities/transaction.dart';
 import 'package:opration/features/transactions/domain/entities/transaction_category.dart';
 import 'package:opration/features/transactions/presentation/controllers/transactions_cubit/transactions_cubit.dart';
@@ -33,7 +31,6 @@ class MonthlyPlanScreen extends StatelessWidget {
         isLeading: false,
         heightBar: 80.h,
         title: 'الميزانية',
-        // subTitle: 'تتبع ميزانيتك الشهرية', // إذا كانت PageHeader تدعمها
       ),
       body: BlocBuilder<MonthlyPlanCubit, MonthlyPlanState>(
         builder: (context, planState) {
@@ -53,13 +50,10 @@ class MonthlyPlanScreen extends StatelessWidget {
                   .where((w) => w.type == WalletType.sideLinked)
                   .toList();
 
-              // التحقق مما إذا كانت الميزانية فارغة تماماً
-              // التحقق مما إذا كان هناك دخل حقيقي (أي مصدر دخل غير الافتراضي، أو الافتراضي بس مبلغه أكبر من 0)
               final hasRealIncome = plan.incomes.any(
                 (i) => i.id != 'default_salary' || i.amount > 0,
               );
 
-              // الميزانية تعتبر فارغة لو مفيش دخل حقيقي، ومفيش مخصصات، ومفيش ديون، ومفيش محافظ مرتبطة
               final isPlanEmpty =
                   !hasRealIncome &&
                   plan.expenses.isEmpty &&
@@ -87,9 +81,6 @@ class MonthlyPlanScreen extends StatelessWidget {
     );
   }
 
-  // ==========================================
-  // 1. حالة عدم وجود ميزانية (Empty State)
-  // ==========================================
   Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Container(
@@ -101,7 +92,7 @@ class MonthlyPlanScreen extends StatelessWidget {
           border: Border.all(color: Colors.black12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withAlpha(15),
               blurRadius: 10,
               offset: const Offset(0, 5),
             ),
@@ -136,7 +127,6 @@ class MonthlyPlanScreen extends StatelessWidget {
             32.verticalSpace,
             ElevatedButton(
               onPressed: () {
-                // التنقل لشاشة إعداد الميزانية
                 context.push(AppRoutes.setupMonthlyPlanScreen);
               },
               style: ElevatedButton.styleFrom(
@@ -160,9 +150,6 @@ class MonthlyPlanScreen extends StatelessWidget {
     );
   }
 
-  // ==========================================
-  // 2. حالة عرض الميزانية الممتلئة (اللون الأخضر)
-  // ==========================================
   Widget _buildPopulatedState(
     BuildContext context,
     MonthlyPlan plan,
@@ -171,10 +158,8 @@ class MonthlyPlanScreen extends StatelessWidget {
   ) {
     final now = DateTime.now();
 
-    // الحسابات الكلية
     final totalPlannedIncome = plan.totalPlannedIncome;
 
-    // حساب إجمالي المصروفات الفعلية لهذا الشهر
     final actualTotalExpenses = allTxs
         .where(
           (t) =>
@@ -194,22 +179,15 @@ class MonthlyPlanScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // زر التعديل في الأعلى
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const SetupMonthlyPlanScreen(),
-                ),
-              ),
+              onPressed: () => context.push(AppRoutes.setupMonthlyPlanScreen),
               icon: const Icon(Icons.edit, size: 16),
               label: const Text('تعديل الخطة'),
             ),
           ),
 
-          // الهيدر الأخضر
           Container(
             padding: EdgeInsets.all(24.r),
             decoration: BoxDecoration(
@@ -235,7 +213,7 @@ class MonthlyPlanScreen extends StatelessWidget {
                 16.verticalSpace,
                 LinearProgressIndicator(
                   value: overallProgress,
-                  backgroundColor: Colors.white.withOpacity(0.2),
+                  backgroundColor: Colors.white.withAlpha(55),
                   valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                   minHeight: 8.h,
                   borderRadius: BorderRadius.circular(4.r),
@@ -311,14 +289,13 @@ class MonthlyPlanScreen extends StatelessWidget {
           ),
           24.verticalSpace,
 
-          // قائمة المخصصات (الفئات)
           if (plan.expenses.isNotEmpty) ...[
             Text(
               'المخصصات',
               style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
             ),
             12.verticalSpace,
-            // لاحظ تمرير الـ context والـ allCategories
+
             ...plan.expenses.map(
               (expense) => _buildAllocationProgressTile(
                 context,
@@ -331,7 +308,6 @@ class MonthlyPlanScreen extends StatelessWidget {
             24.verticalSpace,
           ],
 
-          // قائمة المحافظ المرتبطة
           if (linkedWallets.isNotEmpty) ...[
             Text(
               'المحافظ المرتبطة',
@@ -342,7 +318,6 @@ class MonthlyPlanScreen extends StatelessWidget {
             24.verticalSpace,
           ],
 
-          // قائمة الديون
           if (plan.debts.isNotEmpty) ...[
             Text(
               'الديون',
@@ -357,14 +332,13 @@ class MonthlyPlanScreen extends StatelessWidget {
     );
   }
 
-  // نافذة عرض العمليات الخاصة بالمخصص
   void _showTransactionsBottomSheet(
     BuildContext context,
     String categoryName,
     List<String> relevantIds,
     DateTime currentMonth,
   ) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
@@ -374,25 +348,19 @@ class MonthlyPlanScreen extends StatelessWidget {
       builder: (ctx) {
         return BlocBuilder<TransactionCubit, TransactionState>(
           builder: (context, txState) {
-            // جلب العمليات الخاصة بهذا المخصص وتصنيفاتها الفرعية في الشهر الحالي
             final transactions = txState.allTransactions.where((t) {
               return relevantIds.contains(t.categoryId) &&
                   t.type == TransactionType.expense &&
                   t.date.year == currentMonth.year &&
                   t.date.month == currentMonth.month;
-            }).toList();
-
-            // ترتيب العمليات من الأحدث للأقدم
-            transactions.sort((a, b) => b.date.compareTo(a.date));
+            }).toList()..sort((a, b) => b.date.compareTo(a.date));
 
             return Container(
-              height:
-                  MediaQuery.of(ctx).size.height * 0.65, // أخذ 65% من الشاشة
+              height: MediaQuery.of(ctx).size.height * 0.65,
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // الهيدر (اسم الفئة وزر الإغلاق)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -411,7 +379,6 @@ class MonthlyPlanScreen extends StatelessWidget {
                   ),
                   16.verticalSpace,
 
-                  // قائمة العمليات
                   Expanded(
                     child: transactions.isEmpty
                         ? Center(
@@ -493,7 +460,6 @@ class MonthlyPlanScreen extends StatelessWidget {
     );
   }
 
-  // دالة مساعدة لترجمة الشهر للعربية بناءً على الصورة
   String _getMonthArabicName(int month) {
     const months = [
       'يناير',
@@ -512,7 +478,6 @@ class MonthlyPlanScreen extends StatelessWidget {
     return months[month - 1];
   }
 
-  // كارت مخصص بمؤشر تقدم (صورة الطعام والمواصلات)
   Widget _buildAllocationProgressTile(
     BuildContext context,
     PlannedExpense expense,
@@ -522,7 +487,6 @@ class MonthlyPlanScreen extends StatelessWidget {
   ) {
     final budgeted = expense.budgetedAmount;
 
-    // جلب الفئات الفرعية التابعة لهذا المخصص لضمان حساب أي مصروف فرعي
     final subCategories = allCategories
         .where((TransactionCategory? c) => c?.parentId == expense.categoryId)
         .map((TransactionCategory? c) => c?.id ?? '')
@@ -554,7 +518,6 @@ class MonthlyPlanScreen extends StatelessWidget {
       ),
       margin: EdgeInsets.only(bottom: 12.h),
       child: InkWell(
-        // <--- إضافة InkWell للضغط
         onTap: () => _showTransactionsBottomSheet(
           context,
           expense.name,
@@ -608,7 +571,7 @@ class MonthlyPlanScreen extends StatelessWidget {
                             Icons.arrow_forward_ios,
                             size: 12.r,
                             color: Colors.grey,
-                          ), // سهم صغير للتلميح بالضغط
+                          ),
                         ],
                       ),
                       Text(
@@ -639,7 +602,6 @@ class MonthlyPlanScreen extends StatelessWidget {
     );
   }
 
-  // كارت المحافظ المرتبطة (للعرض فقط)
   Widget _buildWalletTile(Wallet wallet) {
     return Card(
       elevation: 0,
@@ -677,7 +639,6 @@ class MonthlyPlanScreen extends StatelessWidget {
     );
   }
 
-  // كارت الديون (للعرض فقط)
   Widget _buildDebtTile(PlannedDebt debt) {
     return Card(
       elevation: 0,

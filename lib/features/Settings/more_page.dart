@@ -119,7 +119,7 @@ class CustomMorePageCard extends StatelessWidget {
                 12.horizontalSpace,
                 Text(
                   text,
-                  style: AppTextStyles.style14W400.copyWith(
+                  style: AppTextStyle.style14W400.copyWith(
                     color: AppColors.scaffoldBackgroundLightColor,
                   ),
                 ),
@@ -165,7 +165,7 @@ class CustomOutLineMorePageCard extends StatelessWidget {
                 12.horizontalSpace,
                 Text(
                   text,
-                  style: AppTextStyles.style14W400.copyWith(
+                  style: AppTextStyle.style14W400.copyWith(
                     color: AppColors.primaryColor,
                   ),
                 ),

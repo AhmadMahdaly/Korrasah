@@ -3,6 +3,7 @@ import 'package:opration/core/responsive/responsive_config.dart';
 import 'package:opration/core/shared_widgets/svg_image_widget.dart';
 import 'package:opration/core/theme/colors.dart';
 import 'package:opration/core/theme/text_style.dart';
+import 'package:opration/core/theme/themes.dart';
 import 'package:opration/features/transactions/presentation/screens/widgets/welcome_user_widget.dart';
 
 class PageHeader extends StatelessWidget implements PreferredSizeWidget {
@@ -35,12 +36,8 @@ class PageHeader extends StatelessWidget implements PreferredSizeWidget {
         left: 16.w,
         bottom: 12.h,
       ),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment(0.50, -0),
-          end: Alignment(0.50, 1),
-          colors: [AppColors.primaryColor, AppColors.secondaryTextColor],
-        ),
+      decoration: BoxDecoration(
+        gradient: appGradient(),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,7 +80,7 @@ class SubTitle extends StatelessWidget {
         4.horizontalSpace,
         Text(
           'ما تفعله الآن هو ما تجني ثماره في الغد',
-          style: AppTextStyles.style14W400.copyWith(
+          style: AppTextStyle.style14W400.copyWith(
             color: AppColors.scaffoldBackgroundLightColor,
           ),
         ),

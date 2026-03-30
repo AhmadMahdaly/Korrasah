@@ -22,10 +22,10 @@ extension PlanExecutionTypeExt on PlanExecutionType {
 extension EndOfMonthActionExt on EndOfMonthAction {
   String get label {
     switch (this) {
-      case EndOfMonthAction.keepRemaining:
-        return 'الاحتفاظ بالمتبقي';
       case EndOfMonthAction.transferToSavings:
         return 'التحويل للتوفير';
+      case EndOfMonthAction.keepRemaining:
+        return 'الاحتفاظ بالمتبقي';
     }
   }
 }
@@ -41,7 +41,8 @@ class PlannedIncome extends Equatable {
     this.executionDay = 1,
     this.executionType = PlanExecutionType.manual,
     this.isFixed = true, // حقل يحدد هل الدخل ثابت أم لا
-    this.targetWalletId, // محفظة الإيداع
+    this.targetWalletId,
+    this.walletId,
   });
 
   factory PlannedIncome.fromJson(Map<String, dynamic> map) {
@@ -59,6 +60,7 @@ class PlannedIncome extends Equatable {
       ),
       isFixed: map['isFixed'] as bool? ?? true,
       targetWalletId: map['targetWalletId'] as String?,
+      walletId: map['walletId'] as String?,
     );
   }
 
@@ -70,6 +72,7 @@ class PlannedIncome extends Equatable {
   final PlanExecutionType executionType;
   final bool isFixed;
   final String? targetWalletId;
+  final String? walletId;
 
   @override
   List<Object?> get props => [
@@ -81,6 +84,7 @@ class PlannedIncome extends Equatable {
     executionType,
     isFixed,
     targetWalletId,
+    walletId,
   ];
 
   PlannedIncome copyWith({
@@ -92,6 +96,7 @@ class PlannedIncome extends Equatable {
     PlanExecutionType? executionType,
     bool? isFixed,
     String? targetWalletId,
+    String? walletId,
   }) {
     return PlannedIncome(
       id: id ?? this.id,
@@ -102,6 +107,7 @@ class PlannedIncome extends Equatable {
       executionType: executionType ?? this.executionType,
       isFixed: isFixed ?? this.isFixed,
       targetWalletId: targetWalletId ?? this.targetWalletId,
+      walletId: walletId ?? this.walletId,
     );
   }
 
@@ -114,9 +120,11 @@ class PlannedIncome extends Equatable {
     'executionType': executionType.name,
     'isFixed': isFixed,
     'targetWalletId': targetWalletId,
+    'walletId': walletId,
   };
 }
 
+// --- 2. المخصصات ---
 @immutable
 class PlannedExpense extends Equatable {
   const PlannedExpense({
@@ -126,6 +134,7 @@ class PlannedExpense extends Equatable {
     required this.budgetedAmount,
     this.sourceId,
     this.endOfMonthAction = EndOfMonthAction.keepRemaining,
+    this.walletId, // <-- الحقل الجديد لربط المخصص بمحفظة مستقلة
   });
 
   factory PlannedExpense.fromJson(Map<String, dynamic> map) {
@@ -139,14 +148,17 @@ class PlannedExpense extends Equatable {
         (e) => e.name == map['endOfMonthAction'],
         orElse: () => EndOfMonthAction.keepRemaining,
       ),
+      walletId: map['walletId'] as String?, // <-- قراءة الحقل
     );
   }
+
   final String id;
   final String name;
   final String categoryId;
   final double budgetedAmount;
   final String? sourceId;
   final EndOfMonthAction endOfMonthAction;
+  final String? walletId; // null = الميزانية الرئيسية
 
   @override
   List<Object?> get props => [
@@ -156,6 +168,7 @@ class PlannedExpense extends Equatable {
     budgetedAmount,
     sourceId,
     endOfMonthAction,
+    walletId,
   ];
 
   PlannedExpense copyWith({
@@ -165,6 +178,7 @@ class PlannedExpense extends Equatable {
     double? budgetedAmount,
     String? sourceId,
     EndOfMonthAction? endOfMonthAction,
+    String? walletId,
   }) {
     return PlannedExpense(
       id: id ?? this.id,
@@ -173,6 +187,7 @@ class PlannedExpense extends Equatable {
       budgetedAmount: budgetedAmount ?? this.budgetedAmount,
       sourceId: sourceId ?? this.sourceId,
       endOfMonthAction: endOfMonthAction ?? this.endOfMonthAction,
+      walletId: walletId ?? this.walletId,
     );
   }
 
@@ -183,6 +198,7 @@ class PlannedExpense extends Equatable {
     'budgetedAmount': budgetedAmount,
     'sourceId': sourceId,
     'endOfMonthAction': endOfMonthAction.name,
+    'walletId': walletId,
   };
 }
 
@@ -294,11 +310,14 @@ class MonthlyPlan extends Equatable {
 
   double get totalPlannedIncome =>
       incomes.fold(0, (sum, item) => sum + item.amount);
-  double get totalBudgetedExpense =>
-      expenses.fold(0, (sum, item) => sum + item.budgetedAmount);
+
+  // يحسب فقط مخصصات الميزانية الرئيسية (اللي walletId بتاعها بـ null)
+  double get totalBudgetedExpense => expenses
+      .where((e) => e.walletId == null)
+      .fold(0, (sum, item) => sum + item.budgetedAmount);
+
   double get totalPlannedDebts =>
       debts.fold(0, (sum, item) => sum + item.amount);
-
   @override
   List<Object> get props => [id, incomes, expenses, debts];
 

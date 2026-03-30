@@ -78,7 +78,7 @@ class ShoppingListView extends StatelessWidget {
             body: ListView(
               padding: EdgeInsets.all(16.r),
               children: [
-                Text('حاجات ناوي تشتريها:', style: AppTextStyles.style16W600),
+                Text('حاجات ناوي تشتريها:', style: AppTextStyle.style16W600),
                 8.verticalSpace,
                 if (activeItems.isEmpty) ...[
                   Column(
@@ -100,7 +100,7 @@ class ShoppingListView extends StatelessWidget {
                               Center(
                                 child: Text(
                                   'مفيش حاجات مسجلها حالياً.',
-                                  style: AppTextStyles.style14W500.copyWith(
+                                  style: AppTextStyle.style14W500.copyWith(
                                     color: AppColors.textGreyColor,
                                   ),
                                 ),
@@ -118,7 +118,7 @@ class ShoppingListView extends StatelessWidget {
                   24.verticalSpace,
                   Text(
                     'تم شراؤها (نزلت في المعاملات):',
-                    style: AppTextStyles.style14W600.copyWith(
+                    style: AppTextStyle.style14W600.copyWith(
                       color: AppColors.textGreyColor,
                     ),
                   ),
@@ -192,7 +192,7 @@ class ShoppingListView extends StatelessWidget {
         children: [
           Text(
             'ضيف حاجة عايز تشتريها',
-            style: AppTextStyles.style14W600,
+            style: AppTextStyle.style14W600,
           ),
           20.verticalSpace,
           Form(
@@ -291,7 +291,7 @@ class ShoppingListView extends StatelessWidget {
             children: [
               Text(
                 'ألف مبروك! سجلها في مصاريفك',
-                style: AppTextStyles.style14W600,
+                style: AppTextStyle.style14W600,
               ),
               20.verticalSpace,
               Expanded(
@@ -306,7 +306,7 @@ class ShoppingListView extends StatelessWidget {
                         Text(
                           textAlign: TextAlign.start,
                           'اشتريت "${item.name}" بكام فعلياً؟',
-                          style: AppTextStyles.style12W600.copyWith(
+                          style: AppTextStyle.style12W600.copyWith(
                             color: AppColors.forthColor,
                           ),
                         ),

@@ -29,7 +29,7 @@ class WelcomeUserWidget extends StatelessWidget {
               Text(
                 title!,
                 textAlign: TextAlign.center,
-                style: AppTextStyles.style18W700.copyWith(
+                style: AppTextStyle.style18W700.copyWith(
                   color: AppColors.scaffoldBackgroundLightColor,
                 ),
               ),
@@ -44,7 +44,7 @@ class WelcomeUserWidget extends StatelessWidget {
               if (state is Authenticated) {
                 return Text(
                   'مرحبـــــًا بك ${state.username}',
-                  style: AppTextStyles.style18W700.copyWith(
+                  style: AppTextStyle.style18W700.copyWith(
                     color: AppColors.scaffoldBackgroundLightColor,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -53,7 +53,7 @@ class WelcomeUserWidget extends StatelessWidget {
 
               return Text(
                 'مرحبـــــًا بك',
-                style: AppTextStyles.style18W700.copyWith(
+                style: AppTextStyle.style18W700.copyWith(
                   color: AppColors.scaffoldBackgroundLightColor,
                 ),
                 overflow: TextOverflow.ellipsis,

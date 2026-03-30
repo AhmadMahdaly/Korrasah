@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:opration/features/Settings/more_page.dart';
+import 'package:opration/features/Settings/menu_screen.dart';
 import 'package:opration/features/monthly_plan/presentation/screens/monthly_plan_screen.dart';
 import 'package:opration/features/transactions/presentation/screens/add_transaction_screen.dart';
 import 'package:opration/features/transactions/presentation/screens/transaction_details_screen.dart';
@@ -15,7 +15,7 @@ class MainLayoutCubit extends Cubit<MainLayoutState> {
     const WalletsScreen(),
     const AddTransactionScreen(),
     const MonthlyPlanScreen(),
-    const MoreView(),
+    const SettingsScreen(),
   ];
   int currentIndex = 2;
   void changeNavBarIndex(int index) {
