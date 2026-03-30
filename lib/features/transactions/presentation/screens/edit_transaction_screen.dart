@@ -1,0 +1,200 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:opration/core/responsive/responsive_config.dart';
+import 'package:opration/core/shared_widgets/custom_dropdown_button.dart';
+import 'package:opration/core/shared_widgets/custom_primary_button.dart';
+import 'package:opration/core/shared_widgets/custom_primary_textfield.dart';
+import 'package:opration/core/shared_widgets/page_header.dart';
+import 'package:opration/core/theme/colors.dart';
+import 'package:opration/core/theme/text_style.dart';
+import 'package:opration/features/transactions/domain/entities/transaction.dart';
+import 'package:opration/features/transactions/presentation/controllers/transactions_cubit/transactions_cubit.dart';
+
+class EditTransactionScreen extends StatefulWidget {
+  const EditTransactionScreen({required this.transaction, super.key});
+  final Transaction transaction;
+
+  @override
+  State<EditTransactionScreen> createState() => _EditTransactionScreenState();
+}
+
+class _EditTransactionScreenState extends State<EditTransactionScreen> {
+  late final TextEditingController _amountController;
+  late final TextEditingController _noteController;
+  late String _selectedCategoryId;
+  late String _selectedWalletId;
+  late DateTime _selectedDate;
+
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _amountController = TextEditingController(
+      text: widget.transaction.amount.toString(),
+    );
+    _noteController = TextEditingController(
+      text: widget.transaction.note ?? '',
+    );
+    _selectedCategoryId = widget.transaction.categoryId;
+    _selectedWalletId = widget.transaction.walletId;
+    _selectedDate = widget.transaction.date;
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  void _updateTransaction() {
+    if (!_formKey.currentState!.validate()) return;
+
+    final updatedTransaction = Transaction(
+      id: widget.transaction.id,
+      amount: double.parse(_amountController.text),
+      categoryId: _selectedCategoryId,
+      date: _selectedDate,
+      note: _noteController.text,
+      type: widget.transaction.type,
+      walletId: _selectedWalletId,
+    );
+
+    context.read<TransactionCubit>().updateTransaction(updatedTransaction);
+    if (context.mounted) {
+      context.pop();
+    }
+  }
+
+  void _deleteTransaction() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('متأكد؟'),
+        content: const Text(
+          'أنت كدا هتمسح العملية دي كلها',
+        ),
+        actions: [
+          TextButton(
+            child: const Text('إلغاء'),
+            onPressed: () => ctx.pop(),
+          ),
+          TextButton(
+            child: Text(
+              'مسح',
+              style: AppTextStyles.style12W700.copyWith(
+                color: AppColors.errorColor,
+              ),
+            ),
+            onPressed: () {
+              context.read<TransactionCubit>().deleteTransaction(
+                widget.transaction.id,
+              );
+              context.pop();
+              if (ctx.mounted) {
+                ctx.pop();
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: PageHeader(
+        isLeading: true,
+
+        title: 'عدّل',
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.delete,
+              color: AppColors.errorColor.withAlpha(200),
+            ),
+            onPressed: _deleteTransaction,
+            tooltip: 'تعديل',
+          ),
+        ],
+      ),
+      body: BlocBuilder<TransactionCubit, TransactionState>(
+        builder: (context, state) {
+          final categories = state.allCategories
+              .where((c) => c.type == widget.transaction.type)
+              .toList();
+          return Form(
+            key: _formKey,
+            child: ListView(
+              padding: EdgeInsets.all(16.r),
+              children: [
+                CustomPrimaryTextfield(
+                  controller: _amountController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  text: 'المبلغ',
+                  validator: (v) =>
+                      v == null || v.isEmpty ? 'سجل المبلغ' : null,
+                ),
+                16.verticalSpace,
+                CustomDropdownButtonFormField<String>(
+                  value: _selectedCategoryId,
+                  items: categories
+                      .map(
+                        (cat) => DropdownMenuItem(
+                          value: cat.id,
+                          child: Text(cat.name),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _selectedCategoryId = value);
+                    }
+                  },
+                  hintText: 'الفئة',
+                ),
+
+                16.verticalSpace,
+                CustomPrimaryTextfield(
+                  controller: _noteController,
+                  text: 'لو عندك ملاحظة',
+                ),
+                16.verticalSpace,
+                ListTile(
+                  title: const Text('التاريخ'),
+                  subtitle: Text(
+                    DateFormat.yMMMd('ar').format(_selectedDate),
+                  ),
+                  trailing: const Icon(Icons.calendar_today),
+                  onTap: () async {
+                    final pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: _selectedDate,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime.now(),
+                    );
+                    if (pickedDate != null) {
+                      setState(() => _selectedDate = pickedDate);
+                    }
+                  },
+                ),
+                32.verticalSpace,
+                CustomPrimaryButton(
+                  onPressed: _updateTransaction,
+                  width: SizeConfig.screenWidth,
+                  text: 'سجّل',
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
