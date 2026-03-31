@@ -56,7 +56,7 @@ class _SplashBodyState extends State<SplashBody> {
             ),
           ),
           Text(
-            'فلوسي',
+            kAppName,
             textAlign: TextAlign.center,
             style: AppTextStyle.style20W700.copyWith(
               color: AppColors.primaryColor,

@@ -13,7 +13,7 @@ void showCustomSnackBar(
       content: Text(
         message ?? '',
         style: AppTextStyle.style16W600.copyWith(
-          color: msgColor ?? AppColors.scaffoldBackgroundLightColor,
+          color: msgColor ?? AppColors.white,
         ),
       ),
       backgroundColor: backgroundColor ?? AppColors.primaryTextColor,

@@ -10,7 +10,7 @@ class Appthemes {
       colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primaryColor),
       useMaterial3: true,
       primaryColor: AppColors.primaryColor,
-      scaffoldBackgroundColor: AppColors.scaffoldBackgroundLightColor,
+      scaffoldBackgroundColor: AppColors.white,
       fontFamily: kPrimaryFont,
 
       textTheme: TextTheme(
@@ -29,7 +29,7 @@ class Appthemes {
           color: AppColors.primaryTextColor,
           fontFamily: kPrimaryFont,
         ),
-        surfaceTintColor: AppColors.scaffoldBackgroundLightColor,
+        surfaceTintColor: AppColors.white,
       ),
       cardTheme: CardThemeData(
         color: Colors.transparent,
@@ -47,7 +47,7 @@ class Appthemes {
 
       /// Dialog theme
       dialogTheme: DialogThemeData(
-        backgroundColor: AppColors.scaffoldBackgroundLightColor,
+        backgroundColor: AppColors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20.r),
         ),
@@ -62,8 +62,7 @@ class Appthemes {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryColor,
-          foregroundColor:
-              AppColors.scaffoldBackgroundLightColor, // لون النص والأيقونة
+          foregroundColor: AppColors.white, // لون النص والأيقونة
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20.r),
           ),

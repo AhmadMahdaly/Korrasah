@@ -22,7 +22,9 @@ class CustomPrimaryButton extends StatelessWidget {
         style: ButtonStyle(
           backgroundColor: WidgetStateProperty.all(AppColors.primaryColor),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          minimumSize: WidgetStateProperty.all(Size(width ?? 300.w, 52.h)),
+          minimumSize: WidgetStateProperty.all(
+            Size(width ?? double.infinity, 52.h),
+          ),
           shape: WidgetStateProperty.all(
             RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(kRadius),
@@ -33,7 +35,7 @@ class CustomPrimaryButton extends StatelessWidget {
           text,
           style: AppTextStyle.style16W500.copyWith(
             fontFamily: kPrimaryFont,
-            color: AppColors.scaffoldBackgroundLightColor,
+            color: AppColors.white,
           ),
         ),
       ),

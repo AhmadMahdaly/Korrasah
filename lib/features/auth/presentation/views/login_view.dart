@@ -37,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
             showCustomSnackBar(
               context,
               message: state.message,
-              msgColor: AppColors.scaffoldBackgroundLightColor,
+              msgColor: AppColors.white,
               backgroundColor: AppColors.errorColor,
             );
           }

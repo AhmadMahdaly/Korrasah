@@ -19,7 +19,7 @@ class CustomFloatingActionButton extends StatelessWidget {
       tooltip: tooltip,
       child: const Icon(
         Icons.add,
-        color: AppColors.scaffoldBackgroundLightColor,
+        color: AppColors.white,
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:opration/core/constants.dart';
 import 'package:opration/core/di.dart';
 import 'package:opration/core/localization/s.dart';
 import 'package:opration/core/responsive/responsive_config.dart';
@@ -83,7 +84,7 @@ class MyApp extends StatelessWidget {
         ],
         child: MaterialApp.router(
           debugShowCheckedModeBanner: false,
-          title: 'فلوسي',
+          title: kAppName,
           routerConfig: RouterGenerationConfig.goRouter,
           theme: Appthemes.lightTheme(),
           locale: const Locale('ar'),

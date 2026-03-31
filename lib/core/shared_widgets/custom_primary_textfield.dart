@@ -90,7 +90,7 @@ class CustomPrimaryTextfield extends StatelessWidget {
             vertical: 10.h,
           ),
           filled: true,
-          fillColor: AppColors.scaffoldBackgroundLightColor,
+          fillColor: AppColors.white,
         ),
 
         textInputAction: textInputAction,

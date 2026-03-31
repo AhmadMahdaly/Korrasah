@@ -5,6 +5,7 @@ analyzer:
     avoid_redundant_argument_values: ignore
     depend_on_referenced_packages: ignore
     document_ignores: ignore
+    inference_failure_on_function_return_type: ignore
     inference_failure_on_instance_creation: ignore
     lines_longer_than_80_chars: ignore
     no_default_cases: ignore
