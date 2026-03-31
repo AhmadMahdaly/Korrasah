@@ -36,7 +36,7 @@ class TransactionDetailsScreen extends StatelessWidget {
 
             decoration: BoxDecoration(
               border: Border.all(
-                color: AppColors.scaffoldBackgroundLightColor,
+                color: AppColors.white,
                 width: 0.5.w,
               ),
               borderRadius: BorderRadius.circular(kRadius),
@@ -45,12 +45,12 @@ class TransactionDetailsScreen extends StatelessWidget {
               indicatorPadding: EdgeInsets.all(3.r),
               indicator: BoxDecoration(
                 borderRadius: BorderRadius.circular(kRadius),
-                color: AppColors.scaffoldBackgroundLightColor,
+                color: AppColors.white,
               ),
               indicatorSize: TabBarIndicatorSize.tab,
               dividerHeight: 0,
               labelColor: AppColors.primaryColor,
-              unselectedLabelColor: AppColors.scaffoldBackgroundLightColor,
+              unselectedLabelColor: AppColors.white,
               labelStyle: AppTextStyle.style14W600.copyWith(
                 fontFamily: kPrimaryFont,
               ),
@@ -76,7 +76,7 @@ class TransactionDetailsScreen extends StatelessWidget {
                       IconButton(
                         icon: Icon(
                           Icons.notifications_outlined,
-                          color: AppColors.scaffoldBackgroundLightColor,
+                          color: AppColors.white,
                           size: 24.r,
                         ),
                         onPressed: () {
@@ -917,7 +917,7 @@ class _PieChartCard extends StatelessWidget {
                       title: '${percentage.truncate()}%',
                       radius: 60.r,
                       titleStyle: AppTextStyle.style12Bold.copyWith(
-                        color: AppColors.scaffoldBackgroundLightColor,
+                        color: AppColors.white,
                       ),
                     );
                   }).toList(),

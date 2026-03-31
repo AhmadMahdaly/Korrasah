@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:opration/core/responsive/responsive_config.dart';
+import 'package:opration/core/shared_widgets/custom_primary_button.dart';
+import 'package:opration/core/shared_widgets/page_header.dart';
+import 'package:opration/core/theme/colors.dart';
+import 'package:opration/core/theme/text_style.dart';
 import 'package:opration/features/transactions/domain/entities/transaction.dart';
 import 'package:opration/features/transactions/domain/entities/transaction_category.dart';
 import 'package:opration/features/transactions/presentation/controllers/transactions_cubit/transactions_cubit.dart';
@@ -20,35 +23,23 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        leading: const SizedBox(),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.arrow_forward, color: Colors.black87),
-            onPressed: () => context.pop(),
-          ),
-        ],
-        title: Column(
+      appBar: PageHeader(
+        isLeading: true,
+        heightBar: 100.h,
+        title: 'إعداد الفئات',
+        subTitle: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'إعداد الفئات',
-              style: TextStyle(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            Text(
               _isExpenseTab ? 'تخصيص فئات المصروفات' : 'تخصيص فئات الدخل',
-              style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade500),
+              style: AppTextStyle.style12W500.copyWith(
+                color: AppColors.white,
+              ),
             ),
           ],
         ),
       ),
+
       body: BlocBuilder<TransactionCubit, TransactionState>(
         builder: (context, state) {
           final allCategories = state.allCategories;
@@ -67,7 +58,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.white,
                     borderRadius: BorderRadius.circular(8.r),
                     border: Border.all(color: Colors.black12),
                   ),
@@ -82,7 +73,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                             padding: EdgeInsets.symmetric(vertical: 12.h),
                             decoration: BoxDecoration(
                               color: !_isExpenseTab
-                                  ? const Color(0xFF00A86B)
+                                  ? AppColors.secondaryTextColor
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(7.r),
                             ),
@@ -109,7 +100,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                             padding: EdgeInsets.symmetric(vertical: 12.h),
                             decoration: BoxDecoration(
                               color: _isExpenseTab
-                                  ? const Color(0xFF00A86B)
+                                  ? AppColors.secondaryTextColor
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(7.r),
                             ),
@@ -148,18 +139,15 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                                 _isExpenseTab
                                     ? 'لا توجد مخصصات مسجلة'
                                     : 'لا توجد محافظ دخل مسجلة',
-                                style: TextStyle(
-                                  fontSize: 18.sp,
-                                  fontWeight: FontWeight.bold,
+                                style: AppTextStyle.style18Bold.copyWith(
                                   color: Colors.grey.shade600,
                                 ),
                               ),
                               8.verticalSpace,
                               Text(
                                 'قم بإضافة الميزانية أولاً من شاشة الإعداد',
-                                style: TextStyle(
+                                style: AppTextStyle.style14W500.copyWith(
                                   color: Colors.grey.shade500,
-                                  fontSize: 14.sp,
                                 ),
                               ),
                             ],
@@ -202,7 +190,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
         border: Border.all(color: Colors.black12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withAlpha(15),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -224,23 +212,21 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                 Expanded(
                   child: Text(
                     mainCat.name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16.sp,
-                      color: Colors.black87,
+                    style: AppTextStyle.style16Bold.copyWith(
+                      color: AppColors.primaryColor,
                     ),
                   ),
                 ),
                 ElevatedButton.icon(
                   onPressed: () =>
                       _showAddSubCategoryBottomSheet(context, mainCat),
-                  icon: const Icon(Icons.add, color: Colors.white, size: 16),
+                  icon: Icon(Icons.add, color: Colors.white, size: 16.sp),
                   label: const Text(
                     'إضافة فئة',
                     style: TextStyle(color: Colors.white, fontSize: 12),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00A86B),
+                    backgroundColor: AppColors.secondaryTextColor,
                     minimumSize: Size(80.w, 32.h),
                     padding: EdgeInsets.symmetric(horizontal: 12.w),
                     elevation: 0,
@@ -281,7 +267,10 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                   ),
                   title: Text(
                     cat.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryColor,
+                    ),
                   ),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete_outline, color: Colors.red),
@@ -301,31 +290,33 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
     BuildContext context,
     TransactionCategory parentCategory,
   ) {
+    // 1. مكتبة إيموجي ضخمة مقسمة (أكثر من 60 أيقونة)
     final icons = <String>[
-      '🍔',
-      '🚗',
-      '🎮',
-      '💡',
-      '🏥',
-      '📚',
-      '👕',
-      '📦',
-      '🏠',
-      '☕',
-      '✈️',
-      '🎬',
-      '💊',
-      '🎁',
-      '💰',
-      '📱',
-      '🛒',
-      '🍕',
-      '⛽',
-      '🎯',
+      // مواصلات
+      '🚇', '🚆', '🚉', '🚗', '🚕', '🚌', '🚎', '✈️', '🚢', '🚲', '🛵', '⛽',
+      // طعام ومشروبات
+      '🍔', '🍕', '🍗', '🍜', '🍩', '☕', '🍵', '🥤', '🍎', '🍉',
+      // تسوق ومنزل
+      '🛒', '🛍️', '🎁', '📦', '👕', '👗', '👟', '🏠', '🛋️', '🛏️', '🧴',
+      // فواتير وأخرى
+      '💡', '🚰', '📱', '💻', '📺', '🔌', '🏥', '💊', '💉', '💈', '✂️',
+      // ترفيه
+      '🎮', '🎲', '🎬', '🎧', '🎸', '🎫', '🎪', '⚽', '🏀', '🏊‍♂️',
+      // مال وأعمال ومفرقات
+      '💰', '💵', '💳', '🏦', '💼', '📈', '📉', '📚', '✏️', '🛠️', '🎯',
+    ];
+
+    // 2. لوحة الألوان للتحليل والرسوم البيانية
+    final availableColors = <Color>[
+      const Color(0xFF00A86B), // أخضر أساسي
+      Colors.blue, Colors.red, Colors.orange, Colors.purple,
+      Colors.teal, Colors.pink, Colors.amber, Colors.cyan,
+      Colors.indigo, Colors.brown, Colors.blueGrey, Colors.deepPurple,
     ];
 
     final nameCtrl = TextEditingController();
-    var selectedIcon = '📦';
+    var selectedIcon = '🚇'; // أيقونة المترو كافتراضي
+    var selectedColor = parentCategory.color; // يأخذ لون الأب كافتراضي
 
     showModalBottomSheet<void>(
       context: context,
@@ -342,7 +333,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                 bottom: MediaQuery.of(ctx).viewInsets.bottom,
                 left: 20.w,
                 right: 20.w,
-                top: 40.h,
+                top: 24.h,
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -379,6 +370,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                     ),
                     24.verticalSpace,
 
+                    // --- حقل الاسم ---
                     Text(
                       'اسم الفئة',
                       style: TextStyle(
@@ -390,7 +382,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                     TextFormField(
                       controller: nameCtrl,
                       decoration: InputDecoration(
-                        hintText: 'مثال: سوبر ماركت',
+                        hintText: 'مثال: مواصلات المترو',
                         filled: true,
                         fillColor: Colors.grey.shade50,
                         border: OutlineInputBorder(
@@ -405,6 +397,40 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                     ),
                     20.verticalSpace,
 
+                    // --- اختيار اللون ---
+                    Text(
+                      'اللون (للتحليلات والإحصائيات)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14.sp,
+                      ),
+                    ),
+                    12.verticalSpace,
+                    SizedBox(
+                      height: 45.h,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: availableColors.length,
+                        separatorBuilder: (_, _) => 12.horizontalSpace,
+                        itemBuilder: (context, index) {
+                          final color = availableColors[index];
+                          final isSelected = color.value == selectedColor.value;
+                          return GestureDetector(
+                            onTap: () => setState(() => selectedColor = color),
+                            child: CircleAvatar(
+                              backgroundColor: color,
+                              radius: 22.r,
+                              child: isSelected
+                                  ? const Icon(Icons.check, color: Colors.white)
+                                  : null,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    20.verticalSpace,
+
+                    // --- اختيار الأيقونة (مكتبة الشات) ---
                     Text(
                       'الأيقونة',
                       style: TextStyle(
@@ -413,39 +439,57 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                       ),
                     ),
                     12.verticalSpace,
-                    Wrap(
-                      spacing: 12.w,
-                      runSpacing: 12.h,
-                      alignment: WrapAlignment.center,
-                      children: icons.map((icon) {
-                        final isSelected = icon == selectedIcon;
-                        return GestureDetector(
-                          onTap: () => setState(() => selectedIcon = icon),
-                          child: Container(
-                            padding: EdgeInsets.all(10.r),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(
-                                20.r,
-                              ),
-                              border: Border.all(
+                    Container(
+                      height: 200
+                          .h, // تحديد ارتفاع ثابت عشان القائمة تكون قابلة للتمرير (Scrollable)
+                      padding: EdgeInsets.all(12.r),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(color: Colors.black12),
+                      ),
+                      child: GridView.builder(
+                        shrinkWrap: true,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 6, // عدد الأيقونات في كل صف
+                          crossAxisSpacing: 8.w,
+                          mainAxisSpacing: 8.h,
+                        ),
+                        itemCount: icons.length,
+                        itemBuilder: (context, index) {
+                          final icon = icons[index];
+                          final isSelected = icon == selectedIcon;
+                          return GestureDetector(
+                            onTap: () => setState(() => selectedIcon = icon),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                // عرض لون الخلفية المختار لو الأيقونة دي هي المحددة
                                 color: isSelected
-                                    ? const Color(0xFF00A86B)
-                                    : Colors.black12,
-                                width: isSelected ? 2 : 1,
+                                    ? selectedColor.withAlpha(40)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(12.r),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? selectedColor
+                                      : Colors.black12,
+                                  width: isSelected ? 2 : 1,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  icon,
+                                  style: TextStyle(fontSize: 24.sp),
+                                ),
                               ),
                             ),
-                            child: Text(
-                              icon,
-                              style: TextStyle(fontSize: 24.sp),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                          );
+                        },
+                      ),
                     ),
                     32.verticalSpace,
 
-                    ElevatedButton(
+                    // --- زر الحفظ ---
+                    CustomPrimaryButton(
                       onPressed: () {
                         if (nameCtrl.text.isNotEmpty) {
                           final fullName = '$selectedIcon ${nameCtrl.text}';
@@ -455,7 +499,8 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                             name: fullName,
                             type: parentCategory.type,
                             parentId: parentCategory.id,
-                            colorValue: parentCategory.colorValue,
+                            // هنا بنحفظ اللون الجديد اللي المستخدم اختاره
+                            colorValue: selectedColor.value,
                           );
 
                           context.read<TransactionCubit>().addCategory(
@@ -464,21 +509,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                           Navigator.pop(ctx);
                         }
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00A86B),
-                        padding: EdgeInsets.symmetric(vertical: 14.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                      ),
-                      child: const Text(
-                        'إضافة',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      text: 'إضافة',
                     ),
                     10.verticalSpace,
                     OutlinedButton(

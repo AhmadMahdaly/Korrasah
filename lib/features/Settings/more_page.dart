@@ -29,7 +29,7 @@ class MoreView extends StatelessWidget {
               'assets/image/png/target.png',
               height: 24.r,
 
-              color: AppColors.scaffoldBackgroundLightColor,
+              color: AppColors.white,
             ),
             text: 'الأهداف المالية',
             onTap: () => context.pushNamed(AppRoutes.financialGoalsScreen),
@@ -40,7 +40,7 @@ class MoreView extends StatelessWidget {
               'assets/image/png/money-bag.png',
               height: 24.r,
 
-              color: AppColors.scaffoldBackgroundLightColor,
+              color: AppColors.white,
             ),
             text: 'الديون والإلتزامات',
             onTap: () => context.pushNamed(AppRoutes.debtsView),
@@ -51,7 +51,7 @@ class MoreView extends StatelessWidget {
               'assets/image/png/shopping-cart.png',
               height: 24.r,
 
-              color: AppColors.scaffoldBackgroundLightColor,
+              color: AppColors.white,
             ),
             text: 'قائمة المشتريات',
             onTap: () => context.pushNamed(AppRoutes.shoppingListView),
@@ -62,7 +62,7 @@ class MoreView extends StatelessWidget {
               'assets/image/png/categories.png',
               height: 24.r,
 
-              color: AppColors.scaffoldBackgroundLightColor,
+              color: AppColors.white,
             ),
             text: 'إدارة فئات الدخل والمصاريف',
             onTap: () => context.pushNamed(AppRoutes.manageCategoriesScreen),
@@ -120,7 +120,7 @@ class CustomMorePageCard extends StatelessWidget {
                 Text(
                   text,
                   style: AppTextStyle.style14W400.copyWith(
-                    color: AppColors.scaffoldBackgroundLightColor,
+                    color: AppColors.white,
                   ),
                 ),
               ],

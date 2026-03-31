@@ -1,9 +1,12 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:opration/core/constants.dart';
 import 'package:opration/core/di.dart';
 import 'package:opration/core/responsive/responsive_config.dart';
+import 'package:opration/core/router/app_routes.dart';
+import 'package:opration/core/shared_widgets/custom_primary_button.dart';
 import 'package:opration/core/shared_widgets/page_header.dart' show PageHeader;
 import 'package:opration/core/shared_widgets/show_custom_snackbar.dart';
 import 'package:opration/core/theme/colors.dart';
@@ -26,21 +29,142 @@ class AddTransactionScreen extends StatefulWidget {
 }
 
 class _AddTransactionScreenState extends State<AddTransactionScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // فحص العمليات المجدولة عند فتح الشاشة
+    context.read<TransactionCubit>().checkScheduledTransactions();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        appBar: PageHeader(
+          isLeading: false,
+          heightBar: 145.h,
+          // --- التبويبات (Tabs) كما طلبت ---
+          bottom: Container(
+            height: 50.h,
+            margin: EdgeInsets.symmetric(horizontal: 16.w),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: AppColors.white,
+                width: 0.5.w,
+              ),
+              borderRadius: BorderRadius.circular(kRadius),
+            ),
+            child: TabBar(
+              indicatorPadding: EdgeInsets.all(3.r),
+              indicator: BoxDecoration(
+                borderRadius: BorderRadius.circular(kRadius),
+                color: AppColors.white,
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerHeight: 0,
+              labelColor: AppColors.primaryColor,
+              unselectedLabelColor: AppColors.white,
+              labelStyle: AppTextStyle.style14W600.copyWith(
+                fontFamily: kPrimaryFont,
+              ),
+              unselectedLabelStyle: AppTextStyle.style14W600.copyWith(
+                fontFamily: kPrimaryFont,
+              ),
+              tabs: const [
+                Tab(text: 'مصاريف'),
+                Tab(text: 'فلوس داخلة'),
+              ],
+            ),
+          ),
+          // --- زر الإشعارات المعلق ---
+          actions: [
+            BlocBuilder<TransactionCubit, TransactionState>(
+              builder: (context, state) {
+                final pendingCount = state.pendingTransactions.length;
+
+                return SizedBox(
+                  width: 45.w,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.center,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.notifications_outlined,
+                          color: AppColors.white,
+                          size: 24.r,
+                        ),
+                        onPressed: () {
+                          context.pushNamed(
+                            AppRoutes.notificationsScreen,
+                          );
+                        },
+                      ),
+                      if (pendingCount > 0)
+                        Positioned(
+                          top: 8.h,
+                          right: 8.w,
+                          child: IgnorePointer(
+                            child: Container(
+                              padding: EdgeInsets.all(4.r),
+                              decoration: const BoxDecoration(
+                                color: AppColors.errorColor,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                '$pendingCount',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            16.horizontalSpace,
+          ],
+        ),
+        body: const TabBarView(
+          children: [
+            // تاب المصاريف
+            _TransactionForm(type: TransactionType.expense),
+            // تاب الدخل
+            _TransactionForm(type: TransactionType.income),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// =================================================================
+// أداة الفورم الذكية (تُستخدم مرتين: مرة للمصاريف ومرة للدخل)
+// =================================================================
+class _TransactionForm extends StatefulWidget {
+  const _TransactionForm({required this.type});
+  final TransactionType type;
+
+  @override
+  State<_TransactionForm> createState() => _TransactionFormState();
+}
+
+class _TransactionFormState extends State<_TransactionForm> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
 
-  TransactionType _selectedType = TransactionType.expense;
   DateTime _selectedDate = DateTime.now();
   String? _selectedWalletId;
   String? _selectedMainCategoryId;
   String? _selectedSubCategoryId;
-
-  @override
-  void initState() {
-    super.initState();
-    context.read<TransactionCubit>().checkScheduledTransactions();
-  }
 
   @override
   void dispose() {
@@ -56,8 +180,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       if (finalCategoryId == null) {
         showCustomSnackBar(
           context,
-          msgColor: AppColors.scaffoldBackgroundLightColor,
-          message: _selectedType == TransactionType.expense
+          msgColor: AppColors.white,
+          message: widget.type == TransactionType.expense
               ? 'متنساش تختار المخصص اللي صرفت منه'
               : 'متنساش تختار مصدر الدخل',
           backgroundColor: AppColors.orangeColor,
@@ -68,7 +192,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       if (_selectedWalletId == null) {
         showCustomSnackBar(
           context,
-          msgColor: AppColors.scaffoldBackgroundLightColor,
+          msgColor: AppColors.white,
           message: 'الرجاء اختيار المحفظة أولاً.',
         );
         return;
@@ -82,17 +206,17 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         categoryId: finalCategoryId,
         date: _selectedDate,
         note: _noteController.text.isNotEmpty ? _noteController.text : '',
-        type: _selectedType,
+        type: widget.type,
         walletId: _selectedWalletId!,
       );
 
       // حفظ المعاملة
       context.read<TransactionCubit>().addTransaction(transaction);
 
-      // تحديث المحفظة
+      // تحديث رصيد المحفظة
       context.read<WalletCubit>().updateWalletBalance(
         _selectedWalletId!,
-        _selectedType == TransactionType.income ? amount : -amount,
+        widget.type == TransactionType.income ? amount : -amount,
       );
 
       playTimerSound();
@@ -131,7 +255,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     var budgeted = 0.0;
     var spent = 0.0;
 
-    if (_selectedType == TransactionType.expense) {
+    if (widget.type == TransactionType.expense) {
       for (final id in relevantIds) {
         budgeted += plan.getExpenseForCategory(id)?.budgetedAmount ?? 0.0;
       }
@@ -206,360 +330,316 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: PageHeader(
-        isLeading: false,
-        heightBar: 80.h,
-        title: 'تسجيل معاملة',
-      ),
-      body: BlocBuilder<TransactionCubit, TransactionState>(
-        builder: (context, txState) {
-          final allCategories = txState.allCategories;
-          final mainCategories = allCategories
-              .where((c) => c.type == _selectedType && c.parentId == null)
-              .toList();
-          final subCategories = _selectedMainCategoryId != null
-              ? allCategories
-                    .where((c) => c.parentId == _selectedMainCategoryId)
-                    .toList()
-              : <TransactionCategory>[];
+    return BlocBuilder<TransactionCubit, TransactionState>(
+      builder: (context, txState) {
+        final allCategories = txState.allCategories;
+        final mainCategories = allCategories
+            .where((c) => c.type == widget.type && c.parentId == null)
+            .toList();
+        final subCategories = _selectedMainCategoryId != null
+            ? allCategories
+                  .where((c) => c.parentId == _selectedMainCategoryId)
+                  .toList()
+            : <TransactionCategory>[];
 
-          return BlocBuilder<MonthlyPlanCubit, MonthlyPlanState>(
-            builder: (context, planState) {
-              return BlocBuilder<WalletCubit, WalletState>(
-                builder: (context, walletState) {
-                  final wallets = (walletState is WalletLoaded)
-                      ? walletState.wallets
-                      : <Wallet>[];
+        return BlocBuilder<MonthlyPlanCubit, MonthlyPlanState>(
+          builder: (context, planState) {
+            return BlocBuilder<WalletCubit, WalletState>(
+              builder: (context, walletState) {
+                // استبعاد الميزانية الرئيسية ومحفظة التوفير من الظهور هنا
+                final wallets = (walletState is WalletLoaded)
+                    ? walletState.wallets
+                          .where(
+                            (w) =>
+                                w.type != WalletType.savings &&
+                                w.type != WalletType.mainBudget,
+                          )
+                          .toList()
+                    : <Wallet>[];
 
-                  if (_selectedWalletId == null && wallets.isNotEmpty) {
-                    final mainWallet = wallets.firstWhere(
-                      (w) => w.isMain,
-                      orElse: () => wallets.first,
-                    );
-                    _selectedWalletId = mainWallet.id;
-                  }
+                if (_selectedWalletId == null && wallets.isNotEmpty) {
+                  _selectedWalletId = wallets.first.id;
+                }
 
-                  return SingleChildScrollView(
-                    padding: EdgeInsets.all(16.r),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // 1. نوع المعاملة (Toggle)
-                          Text(
-                            'نوع المعاملة',
-                            style: AppTextStyle.style14Bold,
+                return SingleChildScrollView(
+                  padding: EdgeInsets.all(16.r),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 1. المبلغ
+                        Text(
+                          'المبلغ',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.bold,
                           ),
-                          10.verticalSpace,
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildTypeToggle(
-                                  title: 'دخل',
-                                  icon: Icons.call_received,
-                                  isSelected:
-                                      _selectedType == TransactionType.income,
-                                  activeColor: AppColors.successColor,
-                                  onTap: () => setState(() {
-                                    _selectedType = TransactionType.income;
-                                    _selectedMainCategoryId = null;
-                                    _selectedSubCategoryId = null;
-                                  }),
-                                ),
-                              ),
-                              12.horizontalSpace,
-                              Expanded(
-                                child: _buildTypeToggle(
-                                  title: 'مصروف',
-                                  icon: Icons.call_made,
-                                  isSelected:
-                                      _selectedType == TransactionType.expense,
-                                  activeColor: AppColors.errorColor,
-                                  onTap: () => setState(() {
-                                    _selectedType = TransactionType.expense;
-                                    _selectedMainCategoryId = null;
-                                    _selectedSubCategoryId = null;
-                                  }),
-                                ),
-                              ),
-                            ],
+                        ),
+                        8.verticalSpace,
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(color: Colors.black12),
                           ),
-                          24.verticalSpace,
-
-                          // 2. المبلغ
-                          Text('المبلغ', style: AppTextStyle.style14Bold),
-                          8.verticalSpace,
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12.r),
-                              border: Border.all(color: Colors.black12),
+                          child: TextFormField(
+                            controller: _amountController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
                             ),
-                            child: TextFormField(
-                              controller: _amountController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 24.sp,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primaryColor,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: '0.00',
-                                hintStyle: TextStyle(
-                                  color: Colors.grey.shade400,
-                                ),
-                                border: InputBorder.none,
-                                suffixIcon: Padding(
-                                  padding: EdgeInsets.only(
-                                    left: 16.w,
-                                    top: 14.h,
-                                  ),
-                                  child: Text(
-                                    'ج.م',
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 16.sp,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              validator: (value) =>
-                                  value == null || value.isEmpty
-                                  ? 'سجل المبلغ'
-                                  : null,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 24.sp,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryColor,
                             ),
-                          ),
-                          24.verticalSpace,
-
-                          // 3. المحفظة
-                          Text('المحفظة', style: AppTextStyle.style14Bold),
-                          8.verticalSpace,
-                          DropdownButtonFormField<String>(
-                            initialValue: _selectedWalletId,
-                            decoration: _dropdownDecoration(),
-                            icon: const Icon(
-                              Icons.keyboard_arrow_down,
-                              color: Colors.grey,
-                            ),
-                            items: wallets
-                                .map(
-                                  (w) => DropdownMenuItem(
-                                    value: w.id,
-                                    child: Text(
-                                      '${w.name} (${w.balance.truncate()} ج.م)',
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (v) =>
-                                setState(() => _selectedWalletId = v),
-                            validator: (v) => v == null ? 'اختر المحفظة' : null,
-                          ),
-                          24.verticalSpace,
-
-                          // 4. المخصص (Main Category)
-                          Text('المخصص *', style: AppTextStyle.style14Bold),
-                          8.verticalSpace,
-                          DropdownButtonFormField<String>(
-                            initialValue: _selectedMainCategoryId,
-                            decoration: _dropdownDecoration(),
-                            hint: const Text('اختر المخصص'),
-                            icon: const Icon(
-                              Icons.keyboard_arrow_down,
-                              color: Colors.grey,
-                            ),
-                            items: mainCategories.map((cat) {
-                              final remaining = _calculateRemaining(
-                                cat,
-                                planState.plan,
-                                txState.allTransactions,
-                                allCategories,
-                              );
-                              return DropdownMenuItem(
-                                value: cat.id,
+                            decoration: InputDecoration(
+                              hintText: '0.00',
+                              hintStyle: TextStyle(color: Colors.grey.shade400),
+                              border: InputBorder.none,
+                              suffixIcon: Padding(
+                                padding: EdgeInsets.only(left: 16.w, top: 14.h),
                                 child: Text(
-                                  '${cat.name} (متبقي: ${remaining.truncate()})',
+                                  'ج.م',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 16.sp,
+                                  ),
                                 ),
-                              );
-                            }).toList(),
-                            onChanged: (v) => setState(() {
-                              _selectedMainCategoryId = v;
-                              _selectedSubCategoryId =
-                                  null; // تصفير الفئة الفرعية
-                            }),
-                            validator: (v) => v == null ? 'اختر المخصص' : null,
+                              ),
+                            ),
+                            validator: (value) => value == null || value.isEmpty
+                                ? 'سجل المبلغ'
+                                : null,
                           ),
-                          24.verticalSpace,
+                        ),
+                        24.verticalSpace,
 
-                          // 5. الفئة (Sub Category)
-                          if (_selectedMainCategoryId != null) ...[
-                            Text('الفئة *', style: AppTextStyle.style14Bold),
-                            8.verticalSpace,
-                            if (subCategories.isEmpty)
-                              Container(
-                                width: double.infinity,
-                                padding: EdgeInsets.all(20.r),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12.r),
-                                  border: Border.all(color: Colors.black12),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      'لا توجد فئات لهذا المخصص',
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                    12.verticalSpace,
-                                    OutlinedButton.icon(
-                                      onPressed:
-                                          _addNewSubCategoryForSelectedMain,
-                                      icon: const Icon(Icons.add, size: 18),
-                                      label: const Text('إضافة فئة'),
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: AppColors.primaryColor,
-                                        side: BorderSide(
-                                          color: AppColors.primaryColor
-                                              .withAlpha(50),
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            8.r,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                        // 2. المحفظة الفعلية
+                        Text(
+                          'المحفظة',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        8.verticalSpace,
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedWalletId,
+                          decoration: _dropdownDecoration(),
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down,
+                            color: Colors.grey,
+                          ),
+                          items: wallets
+                              .map(
+                                (w) => DropdownMenuItem(
+                                  value: w.id,
+                                  child: Text(
+                                    '${w.name} (${w.balance.truncate()} ج.م)',
+                                  ),
                                 ),
                               )
-                            else
-                              Wrap(
-                                spacing: 8.w,
-                                runSpacing: 8.h,
+                              .toList(),
+                          onChanged: (v) =>
+                              setState(() => _selectedWalletId = v),
+                          validator: (v) => v == null ? 'اختر المحفظة' : null,
+                        ),
+                        24.verticalSpace,
+
+                        // 3. المخصص (Main Category)
+                        Text(
+                          widget.type == TransactionType.expense
+                              ? 'المخصص *'
+                              : 'مصدر الدخل *',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        8.verticalSpace,
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedMainCategoryId,
+                          decoration: _dropdownDecoration(),
+                          hint: Text(
+                            widget.type == TransactionType.expense
+                                ? 'اختر المخصص'
+                                : 'اختر المصدر',
+                          ),
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down,
+                            color: Colors.grey,
+                          ),
+                          items: mainCategories.map((cat) {
+                            final remaining = _calculateRemaining(
+                              cat,
+                              planState.plan,
+                              txState.allTransactions,
+                              allCategories,
+                            );
+                            return DropdownMenuItem(
+                              value: cat.id,
+                              child: Text(
+                                widget.type == TransactionType.expense
+                                    ? '${cat.name} (متبقي: ${remaining.truncate()})'
+                                    : cat.name,
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (v) => setState(() {
+                            _selectedMainCategoryId = v;
+                            _selectedSubCategoryId = null;
+                          }),
+                          validator: (v) => v == null ? 'مطلوب' : null,
+                        ),
+                        24.verticalSpace,
+
+                        // 4. الفئة (Sub Category)
+                        if (_selectedMainCategoryId != null) ...[
+                          Text(
+                            'الفئة *',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          8.verticalSpace,
+                          if (subCategories.isEmpty)
+                            Container(
+                              width: double.infinity,
+                              padding: EdgeInsets.all(20.r),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12.r),
+                                border: Border.all(color: Colors.black12),
+                              ),
+                              child: Column(
                                 children: [
-                                  ...subCategories.map(
-                                    (cat) => ChoiceChip(
-                                      label: Text(cat.name),
-                                      selected:
-                                          _selectedSubCategoryId == cat.id,
-                                      onSelected: (selected) => setState(
-                                        () => _selectedSubCategoryId = selected
-                                            ? cat.id
-                                            : null,
-                                      ),
-                                      selectedColor: cat.color.withAlpha(40),
-                                      labelStyle: TextStyle(
-                                        color: _selectedSubCategoryId == cat.id
-                                            ? cat.color
-                                            : Colors.black87,
-                                        fontWeight:
-                                            _selectedSubCategoryId == cat.id
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
+                                  Text(
+                                    'لا توجد فئات هنا',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  12.verticalSpace,
+                                  OutlinedButton.icon(
+                                    onPressed:
+                                        _addNewSubCategoryForSelectedMain,
+                                    icon: const Icon(Icons.add, size: 18),
+                                    label: const Text('إضافة فئة'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppColors.primaryColor,
+                                      side: BorderSide(
+                                        color: AppColors.primaryColor.withAlpha(
+                                          50,
+                                        ),
                                       ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(
                                           8.r,
                                         ),
-                                        side: BorderSide(
-                                          color:
-                                              _selectedSubCategoryId == cat.id
-                                              ? cat.color
-                                              : Colors.black12,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  ActionChip(
-                                    label: const Text('إضافة +'),
-                                    onPressed:
-                                        _addNewSubCategoryForSelectedMain,
-                                    backgroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8.r),
-                                      side: const BorderSide(
-                                        color: Colors.black12,
-                                        style: BorderStyle.solid,
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                            24.verticalSpace,
-                          ],
-
-                          // 6. ملاحظات
-                          Text(
-                            'ملاحظات (اختياري)',
-                            style: AppTextStyle.style14Bold,
-                          ),
-                          8.verticalSpace,
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12.r),
-                              border: Border.all(color: Colors.black12),
-                            ),
-                            child: TextFormField(
-                              controller: _noteController,
-                              maxLines: 2,
-                              decoration: InputDecoration(
-                                hintText: 'أضف ملاحظة...',
-                                hintStyle: TextStyle(
-                                  color: Colors.grey.shade400,
+                            )
+                          else
+                            Wrap(
+                              spacing: 8.w,
+                              runSpacing: 8.h,
+                              children: [
+                                ...subCategories.map(
+                                  (cat) => ChoiceChip(
+                                    label: Text(cat.name),
+                                    selected: _selectedSubCategoryId == cat.id,
+                                    onSelected: (selected) => setState(
+                                      () => _selectedSubCategoryId = selected
+                                          ? cat.id
+                                          : null,
+                                    ),
+                                    selectedColor: cat.color.withAlpha(40),
+                                    labelStyle: TextStyle(
+                                      color: _selectedSubCategoryId == cat.id
+                                          ? cat.color
+                                          : Colors.black87,
+                                      fontWeight:
+                                          _selectedSubCategoryId == cat.id
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8.r),
+                                      side: BorderSide(
+                                        color: _selectedSubCategoryId == cat.id
+                                            ? cat.color
+                                            : Colors.black12,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.all(16.r),
-                              ),
-                            ),
-                          ),
-                          32.verticalSpace,
-
-                          // زر الحفظ
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50.h,
-                            child: ElevatedButton(
-                              onPressed: _submit,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00A86B),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8.r),
+                                ActionChip(
+                                  label: const Text('إضافة +'),
+                                  onPressed: _addNewSubCategoryForSelectedMain,
+                                  backgroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.r),
+                                    side: const BorderSide(
+                                      color: Colors.black12,
+                                      style: BorderStyle.solid,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              child: const Text(
-                                'حفظ المعاملة',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                              ],
                             ),
-                          ),
+                          24.verticalSpace,
                         ],
-                      ),
+
+                        // 5. ملاحظات
+                        Text(
+                          'ملاحظات (اختياري)',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        8.verticalSpace,
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(color: Colors.black12),
+                          ),
+                          child: TextFormField(
+                            controller: _noteController,
+                            maxLines: 2,
+                            decoration: InputDecoration(
+                              hintText: 'أضف ملاحظة...',
+                              hintStyle: TextStyle(color: Colors.grey.shade400),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.all(16.r),
+                            ),
+                          ),
+                        ),
+                        32.verticalSpace,
+
+                        CustomPrimaryButton(
+                          onPressed: _submit,
+                          text: 'حفظ المعاملة',
+                        ),
+                      ],
                     ),
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 
-  // تصميم الـ Dropdown ليكون متطابق مع الصورة
   InputDecoration _dropdownDecoration() {
     return InputDecoration(
       filled: true,
@@ -576,48 +656,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.r),
         borderSide: const BorderSide(color: AppColors.primaryColor),
-      ),
-    );
-  }
-
-  // تصميم أزرار الدخل والمصروف
-  Widget _buildTypeToggle({
-    required String title,
-    required IconData icon,
-    required bool isSelected,
-    required Color activeColor,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 16.h),
-        decoration: BoxDecoration(
-          color: isSelected ? activeColor.withAlpha(20) : Colors.white,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-            color: isSelected ? activeColor : Colors.black12,
-            width: isSelected ? 1.5 : 1.0,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? activeColor : Colors.grey,
-              size: 28.r,
-            ),
-            8.verticalSpace,
-            Text(
-              title,
-              style: TextStyle(
-                color: isSelected ? activeColor : Colors.black87,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                fontSize: 16.sp,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
