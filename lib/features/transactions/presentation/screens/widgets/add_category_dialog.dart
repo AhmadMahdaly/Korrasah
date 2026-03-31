@@ -153,7 +153,7 @@ class _AddCategoryWidgetState extends State<AddCategoryWidget> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: AppColors.scaffoldBackgroundLightColor,
+        backgroundColor: AppColors.white,
         title: Text(
           widget.categoryToEdit != null ? 'تعديل الفئة' : 'إضافة فئة ذكية',
           style: AppTextStyle.style14W300,

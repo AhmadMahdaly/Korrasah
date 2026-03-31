@@ -18,7 +18,7 @@ class WelcomeUserWidget extends StatelessWidget {
             onPressed: () => context.pop(),
             icon: const Icon(
               Icons.arrow_back_ios_rounded,
-              color: AppColors.scaffoldBackgroundLightColor,
+              color: AppColors.white,
             ),
           ),
         if (title != null && title!.isNotEmpty) ...[
@@ -30,7 +30,7 @@ class WelcomeUserWidget extends StatelessWidget {
                 title!,
                 textAlign: TextAlign.center,
                 style: AppTextStyle.style18W700.copyWith(
-                  color: AppColors.scaffoldBackgroundLightColor,
+                  color: AppColors.white,
                 ),
               ),
             ],
@@ -45,7 +45,7 @@ class WelcomeUserWidget extends StatelessWidget {
                 return Text(
                   'مرحبـــــًا بك ${state.username}',
                   style: AppTextStyle.style18W700.copyWith(
-                    color: AppColors.scaffoldBackgroundLightColor,
+                    color: AppColors.white,
                   ),
                   overflow: TextOverflow.ellipsis,
                 );
@@ -54,7 +54,7 @@ class WelcomeUserWidget extends StatelessWidget {
               return Text(
                 'مرحبـــــًا بك',
                 style: AppTextStyle.style18W700.copyWith(
-                  color: AppColors.scaffoldBackgroundLightColor,
+                  color: AppColors.white,
                 ),
                 overflow: TextOverflow.ellipsis,
               );

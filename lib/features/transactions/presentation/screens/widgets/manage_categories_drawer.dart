@@ -52,7 +52,7 @@ class ManageCategoriesDrawer extends StatelessWidget {
         ),
         child: const Icon(
           Icons.add,
-          color: AppColors.scaffoldBackgroundLightColor,
+          color: AppColors.white,
         ),
       ),
     );
