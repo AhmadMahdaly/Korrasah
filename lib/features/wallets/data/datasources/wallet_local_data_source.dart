@@ -43,7 +43,7 @@ class WalletLocalDataSourceImpl implements WalletLocalDataSource {
       );
       const savingsWallet = WalletModel(
         id: 'savings_wallet_id',
-        name: 'محفظة التوفير',
+        name: 'التوفير',
         balance: 0,
         isMain: false,
         type: WalletType.savings,

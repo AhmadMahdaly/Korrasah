@@ -12,7 +12,7 @@ class WalletInitial extends WalletState {}
 class WalletLoading extends WalletState {}
 
 class WalletLoaded extends WalletState {
-  const WalletLoaded(this.wallets, {this.showMainWallet = true});
+  const WalletLoaded(this.wallets, {this.showMainWallet = false});
   final List<Wallet> wallets;
   final bool showMainWallet;
 

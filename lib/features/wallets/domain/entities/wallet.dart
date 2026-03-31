@@ -11,7 +11,7 @@ class Wallet extends Equatable {
     required this.balance,
     this.isMain = false,
     this.type = WalletType.sideIndependent,
-    // الحقول الخاصة بالمحافظ المرتبطة بالميزانية
+
     this.monthlyAmount,
     this.executionDay,
     this.executionType = ExecutionType.none,

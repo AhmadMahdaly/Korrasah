@@ -1,13 +1,16 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:go_router/go_router.dart';
 import 'package:opration/core/responsive/responsive_config.dart';
+import 'package:opration/core/router/app_routes.dart';
 import 'package:opration/core/shared_widgets/custom_dropdown_button.dart';
+import 'package:opration/core/shared_widgets/custom_primary_button.dart';
 import 'package:opration/core/shared_widgets/custom_primary_textfield.dart';
 import 'package:opration/core/shared_widgets/page_header.dart' show PageHeader;
 import 'package:opration/core/theme/colors.dart';
 import 'package:opration/core/theme/text_style.dart';
+import 'package:opration/core/theme/themes.dart';
 import 'package:opration/features/monthly_plan/presentation/controllers/monthly_plan_cubit/monthly_plan_cubit.dart';
 import 'package:opration/features/transactions/domain/entities/transaction.dart';
 import 'package:opration/features/transactions/presentation/controllers/transactions_cubit/transactions_cubit.dart';
@@ -22,42 +25,49 @@ class WalletsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      appBar: PageHeader(
-        isLeading: false,
-        heightBar: 80.h,
-        title: 'المحافظ',
-        actions: [
-          TextButton.icon(
-            onPressed: () {
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
+      floatingActionButton: SpeedDial(
+        backgroundColor: AppColors.primaryColor,
+        iconTheme: const IconThemeData(
+          color: AppColors.white,
+        ),
+        icon: Icons.add,
+        activeIcon: Icons.close,
+        spacing: 4.h,
+        spaceBetweenChildren: 4.h,
+        overlayOpacity: 0.4,
+        children: [
+          SpeedDialChild(
+            child: const Icon(Icons.history),
+            label: 'سجل التحويلات',
+            onTap: () {
+              context.pushNamed(AppRoutes.transferHistoryScreen);
+            },
+          ),
+          SpeedDialChild(
+            child: const Icon(
+              Icons.swap_horiz,
+            ),
+            label: 'تحويل',
+            onTap: () {
               final state = context.read<WalletCubit>().state;
               if (state is WalletLoaded) {
                 _showTransferDialog(context, state.wallets);
               }
             },
-            icon: const Icon(Icons.swap_horiz, color: Colors.black87),
-            label: const Text('تحويل', style: TextStyle(color: Colors.black87)),
-            style: TextButton.styleFrom(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
-                side: const BorderSide(color: Colors.black12),
-              ),
-            ),
           ),
-          10.horizontalSpace,
-          ElevatedButton.icon(
-            onPressed: () => _showAddEditSideWalletDialog(context),
-            icon: const Icon(Icons.add, color: Colors.white),
-            label: const Text('إضافة', style: TextStyle(color: Colors.white)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00A86B),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-            ),
+
+          SpeedDialChild(
+            child: const Icon(Icons.add),
+            label: 'إضافة حساب',
+            onTap: () => _showAddEditSideWalletDialog(context),
           ),
-          16.horizontalSpace,
         ],
+      ),
+      appBar: PageHeader(
+        isLeading: false,
+        heightBar: 80.h,
+        title: 'المحافظ والترحيل',
       ),
       body: BlocBuilder<WalletCubit, WalletState>(
         builder: (context, walletState) {
@@ -67,59 +77,84 @@ class WalletsScreen extends StatelessWidget {
           if (walletState is WalletError) {
             return Center(child: Text('خطأ: ${walletState.message}'));
           }
+
           if (walletState is WalletLoaded) {
-            final mainWallet = walletState.wallets.firstWhere(
-              (w) => w.type == WalletType.mainBudget,
-              orElse: () => walletState.wallets.first,
-            );
             final savingsWallet = walletState.wallets.firstWhere(
               (w) => w.type == WalletType.savings,
               orElse: () => walletState.wallets.first,
             );
-            final sideWallets = walletState.wallets
+
+            final actualWallets = walletState.wallets
                 .where(
                   (w) =>
-                      w.type == WalletType.sideIndependent ||
-                      w.type == WalletType.sideLinked,
+                      w.type != WalletType.savings &&
+                      w.type != WalletType.mainBudget,
                 )
                 .toList();
 
-            return BlocBuilder<TransactionCubit, TransactionState>(
-              builder: (context, txState) {
-                final now = DateTime.now();
-                var currentMonthIncome = 0.0;
-                var currentMonthExpense = 0.0;
+            return BlocBuilder<MonthlyPlanCubit, MonthlyPlanState>(
+              builder: (context, planState) {
+                final currentMonth = planState.currentMonth;
 
-                for (final tx in txState.allTransactions) {
-                  if (tx.walletId == mainWallet.id &&
-                      tx.date.year == now.year &&
-                      tx.date.month == now.month) {
-                    if (tx.type == TransactionType.income) {
-                      currentMonthIncome += tx.amount;
-                    } else if (tx.type == TransactionType.expense) {
-                      currentMonthExpense += tx.amount;
+                return BlocBuilder<TransactionCubit, TransactionState>(
+                  builder: (context, txState) {
+                    var monthlyTotalIncome = 0.0;
+                    var monthlyTotalExpense = 0.0;
+
+                    for (final tx in txState.allTransactions) {
+                      if (tx.date.year == currentMonth.year &&
+                          tx.date.month == currentMonth.month) {
+                        if (tx.type == TransactionType.income) {
+                          monthlyTotalIncome += tx.amount;
+                        } else if (tx.type == TransactionType.expense) {
+                          monthlyTotalExpense += tx.amount;
+                        }
+                      }
                     }
-                  }
-                }
 
-                return SingleChildScrollView(
-                  padding: EdgeInsets.all(16.r),
-                  child: Column(
-                    children: [
-                      _buildMainCard(
-                        wallet: mainWallet,
-                        color: const Color(0xFF00A86B),
-                        income: currentMonthIncome,
-                        expense: currentMonthExpense,
-                      ),
-                      16.verticalSpace,
+                    final netRemaining =
+                        monthlyTotalIncome - monthlyTotalExpense;
 
-                      _buildSavingsCard(savingsWallet, const Color(0xFFFF7A00)),
-                      24.verticalSpace,
+                    return Column(
+                      children: [
+                        _buildMonthSelector(context, currentMonth),
 
-                      _buildSideWalletsSection(context, sideWallets),
-                    ],
-                  ),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: EdgeInsets.all(16.r),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildBudgetAggregatorCard(
+                                  context: context,
+                                  income: monthlyTotalIncome,
+                                  expense: monthlyTotalExpense,
+                                  netRemaining: netRemaining,
+                                  savingsWalletId: savingsWallet.id,
+                                  actualWallets: actualWallets,
+                                  monthName: _getMonthArabicName(
+                                    currentMonth.month,
+                                  ),
+                                ),
+                                16.verticalSpace,
+
+                                _buildSavingsCard(
+                                  savingsWallet,
+                                  const Color(0xFFFF7A00),
+                                ),
+                                24.verticalSpace,
+
+                                _buildActualWalletsSection(
+                                  context,
+                                  actualWallets,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 );
               },
             );
@@ -130,17 +165,103 @@ class WalletsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMainCard({
-    required Wallet wallet,
-    required Color color,
+  Widget _buildMonthSelector(BuildContext context, DateTime currentMonth) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 4.h, horizontal: 16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: Colors.black.withAlpha(15)),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+
+              size: 18.r,
+              color: AppColors.primaryTextColor,
+            ),
+            onPressed: () {
+              final prevMonth = DateTime(
+                currentMonth.year,
+                currentMonth.month - 1,
+                1,
+              );
+              context.read<MonthlyPlanCubit>().loadPlanForMonth(prevMonth);
+            },
+          ),
+          Text(
+            '${_getMonthArabicName(currentMonth.month)} ${currentMonth.year}',
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryColor,
+            ),
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 18.r,
+              color: AppColors.primaryTextColor,
+            ),
+            onPressed: () {
+              final nextMonth = DateTime(
+                currentMonth.year,
+                currentMonth.month + 1,
+                1,
+              );
+              context.read<MonthlyPlanCubit>().loadPlanForMonth(nextMonth);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getMonthArabicName(int month) {
+    const months = [
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر',
+    ];
+    return months[month - 1];
+  }
+
+  Widget _buildBudgetAggregatorCard({
+    required BuildContext context,
     required double income,
     required double expense,
+    required double netRemaining,
+    required String savingsWalletId,
+    required List<Wallet> actualWallets,
+    required String monthName,
   }) {
+    final isPositive = netRemaining >= 0;
+
     return Container(
       padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
-        color: color,
+        gradient: appGradient(),
         borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryColor.withAlpha(66),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,16 +269,16 @@ class WalletsScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              CircleAvatar(backgroundColor: Colors.white, radius: 24.r),
+              Icon(Icons.analytics_outlined, color: Colors.white, size: 32.r),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    wallet.name,
-                    style: TextStyle(color: Colors.white70, fontSize: 14.sp),
+                    'محصلة شهر $monthName (الفائض)',
+                    style: TextStyle(color: Colors.white70, fontSize: 12.sp),
                   ),
                   Text(
-                    '${wallet.balance.toStringAsFixed(2)} ريال',
+                    '${isPositive ? '+' : ''}${netRemaining.toStringAsFixed(2)} ج.م',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 24.sp,
@@ -174,295 +295,491 @@ class WalletsScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildMiniStat(
-                'المصروفات (هذا الشهر)',
-                expense.toStringAsFixed(2),
-              ),
-              _buildMiniStat('الدخل (هذا الشهر)', income.toStringAsFixed(2)),
+              _buildMiniStat('المصروف الفعلي', expense.toStringAsFixed(2)),
+              _buildMiniStat('الدخل الفعلي', income.toStringAsFixed(2)),
             ],
           ),
-        ],
-      ),
-    );
-  }
-}
-
-Widget _buildSavingsCard(Wallet wallet, Color color) {
-  return Container(
-    padding: EdgeInsets.all(20.r),
-    decoration: BoxDecoration(
-      color: color,
-      borderRadius: BorderRadius.circular(16.r),
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              wallet.balance.toStringAsFixed(2),
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24.sp,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              'ريال',
-              style: TextStyle(color: Colors.white70, fontSize: 14.sp),
-            ),
-          ],
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              wallet.name,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16.sp,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              'محفظة ثابتة لا تحذف',
-              style: TextStyle(color: Colors.white70, fontSize: 12.sp),
-            ),
-          ],
-        ),
-        CircleAvatar(backgroundColor: Colors.white, radius: 24.r),
-      ],
-    ),
-  );
-}
-
-Widget _buildMiniStat(String title, String value) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.center,
-    children: [
-      Text(
-        title,
-        style: TextStyle(color: Colors.white70, fontSize: 12.sp),
-      ),
-      Text(
-        value,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 16.sp,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    ],
-  );
-}
-
-Widget _buildSideWalletsSection(
-  BuildContext context,
-  List<Wallet> sideWallets,
-) {
-  if (sideWallets.isEmpty) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(vertical: 40.h, horizontal: 20.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.black12),
-      ),
-      child: Column(
-        children: [
-          Icon(Icons.account_balance_wallet, size: 60.r, color: Colors.black12),
           16.verticalSpace,
-          Text(
-            'لا توجد محافظ جانبية',
-            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-          ),
-          8.verticalSpace,
-          Text(
-            'أضف محفظة جديدة لبدء التتبع',
-            style: TextStyle(color: Colors.grey, fontSize: 14.sp),
-          ),
-          24.verticalSpace,
-          ElevatedButton(
-            onPressed: () => _showAddEditSideWalletDialog(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00A86B),
-              minimumSize: Size(double.infinity, 50.h),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
+
+          if (netRemaining > 0)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  _showRolloverToSavingsDialog(
+                    context,
+                    netRemaining,
+                    savingsWalletId,
+                    actualWallets,
+                  );
+                },
+                icon: const Icon(
+                  Icons.move_to_inbox,
+                  color: AppColors.secondaryTextColor,
+                  size: 18,
+                ),
+                label: Text(
+                  'ترحيل الفائض للادخار',
+                  style: AppTextStyle.style12Bold.copyWith(
+                    color: AppColors.secondaryTextColor,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                ),
               ),
             ),
-            child: const Text(
-              'إضافة محفظة',
-              style: TextStyle(color: Colors.white),
-            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSavingsCard(Wallet wallet, Color color) {
+    return Container(
+      padding: EdgeInsets.all(20.r),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: color.withAlpha(55),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                wallet.balance.toStringAsFixed(2),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                'ج.م',
+                style: TextStyle(color: Colors.white70, fontSize: 14.sp),
+              ),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                wallet.name,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                'المحفظة الآمنة',
+                style: TextStyle(color: Colors.white70, fontSize: 12.sp),
+              ),
+            ],
+          ),
+          CircleAvatar(
+            backgroundColor: Colors.white.withAlpha(55),
+            radius: 24.r,
+            child: const Icon(Icons.savings, color: Colors.white),
           ),
         ],
       ),
     );
   }
 
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        'المحافظ الجانبية',
-        style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-      ),
-      16.verticalSpace,
-      ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: sideWallets.length,
-        separatorBuilder: (context, index) => 10.verticalSpace,
-        itemBuilder: (context, index) {
-          final wallet = sideWallets[index];
-          final isLinked = wallet.type == WalletType.sideLinked;
+  Widget _buildMiniStat(String title, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          title,
+          style: TextStyle(color: Colors.white70, fontSize: 12.sp),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16.sp,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
 
-          return InkWell(
-            onTap: () => _showAddEditSideWalletDialog(context, wallet: wallet),
-            borderRadius: BorderRadius.circular(16.r),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16.r),
-                border: Border.all(color: Colors.grey.shade200),
+  Widget _buildActualWalletsSection(
+    BuildContext context,
+    List<Wallet> actualWallets,
+  ) {
+    if (actualWallets.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(20.r),
+          child: Column(
+            children: [
+              Icon(
+                Icons.account_balance,
+                size: 60.r,
+                color: Colors.grey.shade300,
               ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.blue.shade500,
-                    radius: 22.r,
-                    child: Icon(
-                      Icons.account_balance_wallet_outlined,
-                      color: Colors.white,
-                      size: 22.r,
-                    ),
-                  ),
-                  12.horizontalSpace,
+              16.verticalSpace,
+              Text(
+                'لا توجد حسابات أو محافظ مسجلة',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'الحسابات الفعلية (كاش، بنك، إلكتروني)',
+          style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+        ),
+        16.verticalSpace,
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: actualWallets.length,
+          separatorBuilder: (context, index) => 10.verticalSpace,
+          itemBuilder: (context, index) {
+            final wallet = actualWallets[index];
+            final isLinked = wallet.type == WalletType.sideLinked;
+
+            // استخدام Dismissible لتفعيل السحب (Swipe to Delete)
+            return Dismissible(
+              key: Key(wallet.id), // يجب أن يكون المفتاح فريداً لكل عنصر
+              direction: DismissDirection
+                  .endToStart, // السحب من اليسار لليمين (أو العكس حسب اتجاه التطبيق RTL/LTR)
+              // تصميم الخلفية الحمراء التي تظهر تحت العنصر عند سحبه
+              background: Container(
+                alignment: Alignment.centerLeft,
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade400,
+                  borderRadius: BorderRadius.circular(16.r),
+                ),
+                child: Icon(
+                  Icons.delete_sweep,
+                  color: Colors.white,
+                  size: 30.r,
+                ),
+              ),
+
+              // إظهار نافذة تأكيد قبل الحذف النهائي
+              confirmDismiss: (direction) async {
+                return showDialog(
+                  context: context,
+                  builder: (BuildContext ctx) {
+                    return AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16.r),
+                      ),
+                      title: const Text(
+                        'تأكيد الحذف',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                      content: Text(
+                        'هل أنت متأكد من حذف محفظة "${wallet.name}"؟\nسيتم إزالة رصيدها من الميزانية وحذف معاملاتها.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () =>
+                              Navigator.of(ctx).pop(false), // إلغاء الحذف
+                          child: const Text(
+                            'تراجع',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                          ),
+                          onPressed: () =>
+                              Navigator.of(ctx).pop(true), // تأكيد الحذف
+                          child: const Text(
+                            'حذف',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+
+              // الدالة التي يتم تنفيذها بعد السحب والتأكيد
+              onDismissed: (direction) {
+                // 1. حذف المحفظة
+                context.read<WalletCubit>().deleteWallet(wallet.id);
+
+                // 2. إزالة المبلغ من الميزانية (بحذف معاملاتها)
+                // تنبيه: ستحتاج إلى إضافة دالة deleteTransactionsByWalletId في TransactionCubit
+                // context.read<TransactionCubit>().deleteTransactionsByWalletId(wallet.id);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('تم حذف المحفظة "${wallet.name}" بنجاح'),
+                    backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
+
+              // واجهة كارت المحفظة (التي صممتها سابقاً كما هي بدون تغيير)
+              child: InkWell(
+                onTap: () =>
+                    _showAddEditSideWalletDialog(context, wallet: wallet),
+                borderRadius: BorderRadius.circular(16.r),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 16.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16.r),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: AppColors.primaryTextColor.withAlpha(
+                          55,
+                        ),
+                        radius: 22.r,
+                        child: Icon(
+                          Icons.account_balance_wallet,
+                          color: AppColors.primaryTextColor,
+                          size: 22.r,
+                        ),
+                      ),
+                      12.horizontalSpace,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              wallet.name,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14.sp,
-                              ),
-                            ),
-                            8.horizontalSpace,
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 8.w,
-                                vertical: 2.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isLinked
-                                    ? Colors.blue.shade50
-                                    : Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(6.r),
-                              ),
-                              child: Text(
-                                isLinked ? 'مرتبطة بالميزانية' : 'مستقلة',
-                                style: TextStyle(
-                                  color: isLinked
-                                      ? Colors.blue.shade700
-                                      : Colors.grey.shade700,
-                                  fontSize: 10.sp,
-                                  fontWeight: FontWeight.w600,
+                            Row(
+                              children: [
+                                Text(
+                                  wallet.name,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14.sp,
+                                  ),
                                 ),
-                              ),
+                                8.horizontalSpace,
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 8.w,
+                                    vertical: 2.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isLinked
+                                        ? AppColors.primaryTextColor.withAlpha(
+                                            55,
+                                          )
+                                        : AppColors.primaryTextColor.withAlpha(
+                                            20,
+                                          ),
+                                    borderRadius: BorderRadius.circular(6.r),
+                                  ),
+                                  child: Text(
+                                    isLinked ? 'مرتبطة بالخطة' : 'مستقلة',
+                                    style: TextStyle(
+                                      color: isLinked
+                                          ? AppColors.secondaryTextColor
+                                          : AppColors.primaryTextColor,
+                                      fontSize: 10.sp,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                        6.verticalSpace,
-                        if (isLinked)
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
                           Text(
-                            '${wallet.monthlyAmount?.truncate() ?? 0} شهرياً • يوم ${wallet.executionDay ?? '-'} • ${_getExecutionTypeName(wallet.executionType)}',
+                            wallet.balance.toStringAsFixed(2),
                             style: TextStyle(
-                              color: Colors.grey.shade500,
-                              fontSize: 10.sp,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16.sp,
                             ),
-                          )
-                        else
+                          ),
                           Text(
-                            'محفظة فرعية غير مرتبطة',
+                            'ج.م',
                             style: TextStyle(
                               color: Colors.grey.shade500,
                               fontSize: 12.sp,
                             ),
                           ),
-                      ],
-                    ),
-                  ),
-
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        wallet.balance.toStringAsFixed(2),
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16.sp,
-                        ),
+                        ],
                       ),
-                      Text(
-                        'ج.م',
-                        style: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 12.sp,
-                        ),
+                      12.horizontalSpace,
+                      Icon(
+                        Icons.arrow_forward_ios_outlined,
+                        size: 14.r,
+                        color: Colors.grey.shade400,
                       ),
                     ],
                   ),
-                  12.horizontalSpace,
-                  Icon(
-                    Icons.arrow_forward_ios_outlined,
-                    size: 14.r,
-                    color: Colors.grey.shade400,
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  void _showRolloverToSavingsDialog(
+    BuildContext context,
+    double netRemaining,
+    String savingsWalletId,
+    List<Wallet> actualWallets,
+  ) {
+    String? selectedSourceWalletId;
+    final amountCtrl = TextEditingController(
+      text: netRemaining.toStringAsFixed(2),
+    );
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                left: 20.w,
+                right: 20.w,
+                top: 24.h,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'ترحيل الفائض لمحفظة التوفير',
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
+                  8.verticalSpace,
+                  Text(
+                    'يوجد لديك فائض ميزانية هذا الشهر بقيمة ${netRemaining.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 12.sp,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  20.verticalSpace,
+
+                  TextFormField(
+                    controller: amountCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'المبلغ المراد ترحيله',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  16.verticalSpace,
+
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedSourceWalletId,
+                    decoration: const InputDecoration(
+                      labelText: 'سحب الفائض من أي حساب فعلي؟',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: actualWallets
+                        .map(
+                          (w) => DropdownMenuItem(
+                            value: w.id,
+                            child: Text('${w.name} (${w.balance})'),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) =>
+                        setState(() => selectedSourceWalletId = v),
+                  ),
+                  24.verticalSpace,
+
+                  CustomPrimaryButton(
+                    onPressed: () {
+                      final amount = double.tryParse(amountCtrl.text) ?? 0.0;
+                      if (selectedSourceWalletId != null && amount > 0) {
+                        context.read<WalletCubit>().transferBalance(
+                          selectedSourceWalletId!,
+                          savingsWalletId,
+                          amount,
+                        );
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'تم ترحيل الفائض بنجاح! 🚀',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            backgroundColor: Color(0xFF00A86B),
+                          ),
+                        );
+                      }
+                    },
+                    text: 'تأكيد الترحيل',
+                  ),
+                  10.verticalSpace,
                 ],
               ),
-            ),
-          );
-        },
-      ),
-    ],
-  );
-}
-
-String _getExecutionTypeName(ExecutionType type) {
-  switch (type) {
-    case ExecutionType.auto:
-      return 'تلقائي';
-    case ExecutionType.confirm:
-      return 'تأكيد';
-    case ExecutionType.manual:
-      return 'يدوي';
-    default:
-      return 'بدون';
+            );
+          },
+        );
+      },
+    );
   }
-}
 
-void _showAddEditSideWalletDialog(BuildContext context, {Wallet? wallet}) {
-  showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-    ),
-    builder: (ctx) => Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-      child: _AddSideWalletForm(wallet: wallet),
-    ),
-  );
+  void _showAddEditSideWalletDialog(BuildContext context, {Wallet? wallet}) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: _AddSideWalletForm(wallet: wallet),
+      ),
+    );
+  }
 }
 
 class _AddSideWalletForm extends StatefulWidget {
@@ -492,6 +809,7 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
     _balanceController = TextEditingController(
       text: w?.balance.toString() ?? '',
     );
+
     _isLinkedToBudget = w?.type == WalletType.sideLinked;
     _monthlyAmountController = TextEditingController(
       text: w?.monthlyAmount?.toString() ?? '',
@@ -499,7 +817,12 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
     _executionDayController = TextEditingController(
       text: w?.executionDay?.toString() ?? '',
     );
+
     _executionType = w?.executionType ?? ExecutionType.confirm;
+    if (_executionType == ExecutionType.none) {
+      _executionType = ExecutionType.confirm;
+    }
+
     _sourceWalletId = w?.sourceWalletId;
   }
 
@@ -517,115 +840,109 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
       padding: EdgeInsets.all(20.r),
       child: Form(
         key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              widget.wallet == null ? 'إضافة محفظة جانبية' : 'تعديل محفظة',
-              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            20.verticalSpace,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                widget.wallet == null ? 'إضافة محفظة جانبية' : 'تعديل محفظة',
+                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              20.verticalSpace,
 
-            CustomPrimaryTextfield(
-              controller: _nameController,
-              text: 'اسم المحفظة',
-              validator: (v) => v!.isEmpty ? 'مطلوب' : null,
-            ),
-            10.verticalSpace,
-            CustomPrimaryTextfield(
-              controller: _balanceController,
-              text: 'الرصيد الافتتاحي',
-              keyboardType: TextInputType.number,
-            ),
-            16.verticalSpace,
-
-            Row(
-              children: [
-                Expanded(
-                  child: RadioListTile<bool>(
-                    title: const Text('مستقلة'),
-                    value: false,
-                    groupValue: _isLinkedToBudget,
-                    onChanged: (val) =>
-                        setState(() => _isLinkedToBudget = val!),
-                  ),
-                ),
-                Expanded(
-                  child: RadioListTile<bool>(
-                    title: const Text('مرتبطة'),
-                    value: true,
-                    groupValue: _isLinkedToBudget,
-                    onChanged: (val) =>
-                        setState(() => _isLinkedToBudget = val!),
-                  ),
-                ),
-              ],
-            ),
-
-            if (_isLinkedToBudget) ...[
               CustomPrimaryTextfield(
-                controller: _monthlyAmountController,
-                text: 'المبلغ الشهري',
-                keyboardType: TextInputType.number,
+                controller: _nameController,
+                text: 'اسم المحفظة',
+                validator: (v) => v!.isEmpty ? 'مطلوب' : null,
               ),
               10.verticalSpace,
               CustomPrimaryTextfield(
-                controller: _executionDayController,
-                text: 'يوم التنفيذ (1-31)',
+                controller: _balanceController,
+                text: 'الرصيد الافتتاحي',
                 keyboardType: TextInputType.number,
               ),
               10.verticalSpace,
-              DropdownButtonFormField<ExecutionType>(
-                initialValue: _executionType,
-                decoration: const InputDecoration(labelText: 'نوع التنفيذ'),
-                items: const [
-                  DropdownMenuItem(
-                    value: ExecutionType.confirm,
-                    child: Text('تأكيد'),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: RadioListTile<bool>(
+                      title: const Text('مستقلة'),
+                      value: false,
+                      groupValue: _isLinkedToBudget,
+                      onChanged: (val) =>
+                          setState(() => _isLinkedToBudget = val!),
+                    ),
                   ),
-                  DropdownMenuItem(
-                    value: ExecutionType.auto,
-                    child: Text('تلقائي'),
-                  ),
-                  DropdownMenuItem(
-                    value: ExecutionType.manual,
-                    child: Text('يدوي'),
+                  Expanded(
+                    child: RadioListTile<bool>(
+                      title: const Text('مرتبطة'),
+                      value: true,
+                      groupValue: _isLinkedToBudget,
+                      onChanged: (val) =>
+                          setState(() => _isLinkedToBudget = val!),
+                    ),
                   ),
                 ],
-                onChanged: (v) => setState(() => _executionType = v!),
               ),
-              10.verticalSpace,
 
-              DropdownButtonFormField<String>(
-                initialValue: _sourceWalletId,
-                decoration: const InputDecoration(labelText: 'مصدر الفلوس'),
-                items: incomes
-                    .map(
-                      (i) => DropdownMenuItem(value: i.id, child: Text(i.name)),
-                    )
-                    .toList(),
-                onChanged: (v) => setState(() => _sourceWalletId = v),
+              if (_isLinkedToBudget) ...[
+                CustomPrimaryTextfield(
+                  controller: _monthlyAmountController,
+                  text: 'المبلغ الشهري',
+                  keyboardType: TextInputType.number,
+                ),
+                10.verticalSpace,
+                CustomPrimaryTextfield(
+                  controller: _executionDayController,
+                  text: 'يوم التنفيذ (1-31)',
+                  keyboardType: TextInputType.number,
+                ),
+                10.verticalSpace,
+
+                DropdownButtonFormField<ExecutionType>(
+                  initialValue: _executionType,
+                  decoration: const InputDecoration(labelText: 'نوع التنفيذ'),
+                  items: const [
+                    DropdownMenuItem(
+                      value: ExecutionType.confirm,
+                      child: Text('يحتاج تأكيد'),
+                    ),
+                    DropdownMenuItem(
+                      value: ExecutionType.auto,
+                      child: Text('تلقائي'),
+                    ),
+                    DropdownMenuItem(
+                      value: ExecutionType.manual,
+                      child: Text('يدوي'),
+                    ),
+                  ],
+                  onChanged: (v) => setState(() => _executionType = v!),
+                ),
+                10.verticalSpace,
+
+                DropdownButtonFormField<String>(
+                  initialValue: _sourceWalletId,
+                  decoration: const InputDecoration(labelText: 'مصدر الفلوس'),
+                  items: incomes
+                      .map(
+                        (i) =>
+                            DropdownMenuItem(value: i.id, child: Text(i.name)),
+                      )
+                      .toList(),
+                  onChanged: (v) => setState(() => _sourceWalletId = v),
+                ),
+              ],
+
+              20.verticalSpace,
+              CustomPrimaryButton(
+                onPressed: _save,
+                text: 'حفظ',
               ),
             ],
-
-            20.verticalSpace,
-            ElevatedButton(
-              onPressed: _save,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00A86B),
-                padding: EdgeInsets.symmetric(vertical: 14.h),
-              ),
-              child: const Text(
-                'حفظ',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -633,10 +950,15 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
 
   void _save() {
     if (_formKey.currentState!.validate()) {
+      final isNewWallet = widget.wallet == null;
+
+      final newWalletId = widget.wallet?.id ?? const Uuid().v4();
+      final initialBalance = double.tryParse(_balanceController.text) ?? 0.0;
+
       final newWallet = Wallet(
-        id: widget.wallet?.id ?? const Uuid().v4(),
+        id: newWalletId,
         name: _nameController.text,
-        balance: double.tryParse(_balanceController.text) ?? 0.0,
+        balance: initialBalance,
         isMain: false,
         type: _isLinkedToBudget
             ? WalletType.sideLinked
@@ -651,11 +973,27 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
         sourceWalletId: _isLinkedToBudget ? _sourceWalletId : null,
       );
 
-      if (widget.wallet != null) {
-        context.read<WalletCubit>().updateWallet(newWallet);
-      } else {
+      if (isNewWallet) {
         context.read<WalletCubit>().addWallet(newWallet);
+
+        if (initialBalance > 0) {
+          final initialTransaction = Transaction(
+            id: const Uuid().v4(),
+            walletId: newWalletId,
+            amount: initialBalance,
+            type: TransactionType.income,
+            date: DateTime.now(),
+
+            note: 'رصيد إضافة المحفظة',
+            categoryId: 'initial_balance_category_id',
+          );
+
+          context.read<TransactionCubit>().addTransaction(initialTransaction);
+        }
+      } else {
+        context.read<WalletCubit>().updateWallet(newWallet);
       }
+
       Navigator.pop(context);
     }
   }
@@ -788,7 +1126,7 @@ void _showTransferDialog(BuildContext context, List<Wallet> wallets) {
                       child: Text(
                         'تأكيد التحويل',
                         style: AppTextStyle.style14W500.copyWith(
-                          color: AppColors.scaffoldBackgroundLightColor,
+                          color: AppColors.white,
                         ),
                       ),
                     ),
