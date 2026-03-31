@@ -3,9 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:opration/core/responsive/responsive_config.dart';
 import 'package:opration/core/router/app_routes.dart';
+import 'package:opration/core/shared_widgets/custom_primary_button.dart';
 import 'package:opration/core/shared_widgets/page_header.dart';
+import 'package:opration/core/theme/colors.dart';
+import 'package:opration/core/theme/text_style.dart';
+import 'package:opration/core/theme/themes.dart';
 import 'package:opration/features/monthly_plan/domain/entities/monthly_plan.dart';
 import 'package:opration/features/monthly_plan/presentation/controllers/monthly_plan_cubit/monthly_plan_cubit.dart';
+import 'package:opration/features/monthly_plan/presentation/screens/setup_monthly_plan_screen.dart';
 import 'package:opration/features/transactions/domain/entities/transaction.dart';
 import 'package:opration/features/transactions/domain/entities/transaction_category.dart';
 import 'package:opration/features/transactions/presentation/controllers/transactions_cubit/transactions_cubit.dart';
@@ -34,49 +39,117 @@ class MonthlyPlanScreen extends StatelessWidget {
       ),
       body: BlocBuilder<MonthlyPlanCubit, MonthlyPlanState>(
         builder: (context, planState) {
-          if (planState.status == MonthlyPlanStatus.loading ||
-              planState.plan == null) {
+          if (planState.status == MonthlyPlanStatus.loading) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final plan = planState.plan!;
+          final currentMonth = planState.currentMonth;
+          final plan = planState.plan;
 
-          return BlocBuilder<WalletCubit, WalletState>(
-            builder: (context, walletState) {
-              final wallets = (walletState is WalletLoaded)
-                  ? walletState.wallets
-                  : <Wallet>[];
-              final linkedWallets = wallets
-                  .where((w) => w.type == WalletType.sideLinked)
-                  .toList();
+          return Column(
+            children: [
+              _buildMonthSelector(context, currentMonth),
 
-              final hasRealIncome = plan.incomes.any(
-                (i) => i.id != 'default_salary' || i.amount > 0,
-              );
+              Expanded(
+                child: plan == null
+                    ? const SizedBox()
+                    : BlocBuilder<WalletCubit, WalletState>(
+                        builder: (context, walletState) {
+                          final wallets = (walletState is WalletLoaded)
+                              ? walletState.wallets
+                              : <Wallet>[];
+                          final linkedWallets = wallets
+                              .where((w) => w.type == WalletType.sideLinked)
+                              .toList();
 
-              final isPlanEmpty =
-                  !hasRealIncome &&
-                  plan.expenses.isEmpty &&
-                  plan.debts.isEmpty &&
-                  linkedWallets.isEmpty;
+                          final hasRealIncome = plan.incomes.any(
+                            (i) => i.id != 'default_salary' || i.amount > 0,
+                          );
+                          final isPlanEmpty = !hasRealIncome || !plan.isStarted;
 
-              if (isPlanEmpty) {
-                return _buildEmptyState(context);
-              }
+                          if (isPlanEmpty) {
+                            return _buildEmptyState(context);
+                          }
 
-              return BlocBuilder<TransactionCubit, TransactionState>(
-                builder: (context, txState) {
-                  return _buildPopulatedState(
-                    context,
-                    plan,
-                    linkedWallets,
-                    txState.allTransactions,
-                  );
-                },
-              );
-            },
+                          return BlocBuilder<
+                            TransactionCubit,
+                            TransactionState
+                          >(
+                            builder: (context, txState) {
+                              return _buildPopulatedState(
+                                context,
+                                plan,
+                                linkedWallets,
+                                txState.allTransactions,
+                                currentMonth,
+                                txState.allCategories,
+                              );
+                            },
+                          );
+                        },
+                      ),
+              ),
+            ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildMonthSelector(BuildContext context, DateTime currentMonth) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 4.h, horizontal: 16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: Colors.black.withAlpha(20)),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 18.r,
+              color: AppColors.primaryTextColor,
+            ),
+            onPressed: () {
+              final prevMonth = DateTime(
+                currentMonth.year,
+                currentMonth.month - 1,
+                1,
+              );
+              context.read<MonthlyPlanCubit>().loadPlanForMonth(prevMonth);
+            },
+          ),
+
+          Text(
+            '${_getMonthArabicName(currentMonth.month)} ${currentMonth.year}',
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryColor,
+            ),
+          ),
+
+          IconButton(
+            icon: Icon(
+              Icons.arrow_forward_ios_rounded,
+
+              size: 18.r,
+              color: AppColors.primaryTextColor,
+            ),
+            onPressed: () {
+              final nextMonth = DateTime(
+                currentMonth.year,
+                currentMonth.month + 1,
+                1,
+              );
+              context.read<MonthlyPlanCubit>().loadPlanForMonth(nextMonth);
+            },
+          ),
+        ],
       ),
     );
   }
@@ -92,7 +165,7 @@ class MonthlyPlanScreen extends StatelessWidget {
           border: Border.all(color: Colors.black12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha(15),
+              color: Colors.black.withAlpha(20),
               blurRadius: 10,
               offset: const Offset(0, 5),
             ),
@@ -113,36 +186,28 @@ class MonthlyPlanScreen extends StatelessWidget {
             24.verticalSpace,
             Text(
               'لم يتم إعداد الميزانية',
-              style: TextStyle(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.bold,
+              style: AppTextStyle.style20Bold.copyWith(
                 color: Colors.black87,
               ),
             ),
             12.verticalSpace,
             Text(
               'قم بإعداد ميزانيتك الشهرية أولاً',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 14.sp),
+              style: AppTextStyle.style14W500.copyWith(
+                color: Colors.grey.shade600,
+              ),
             ),
             32.verticalSpace,
-            ElevatedButton(
+            CustomPrimaryButton(
               onPressed: () {
-                context.push(AppRoutes.setupMonthlyPlanScreen);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const SetupMonthlyPlanScreen(),
+                  ),
+                );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00A86B),
-                padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 12.h),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-              ),
-              child: const Text(
-                'إعداد الميزانية',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              text: 'إعداد الميزانية',
             ),
           ],
         ),
@@ -155,8 +220,13 @@ class MonthlyPlanScreen extends StatelessWidget {
     MonthlyPlan plan,
     List<Wallet> linkedWallets,
     List<Transaction> allTxs,
+    DateTime currentMonth,
+    List<TransactionCategory> allCategories,
   ) {
-    final now = DateTime.now();
+    final startDate = DateTime(currentMonth.year, currentMonth.month, 1);
+    final endDate = DateTime(currentMonth.year, currentMonth.month + 1, 0);
+    final dateRangeStr =
+        'من ${startDate.day} ${_getMonthArabicName(startDate.month)} إلى ${endDate.day} ${_getMonthArabicName(endDate.month)}';
 
     final totalPlannedIncome = plan.totalPlannedIncome;
 
@@ -164,8 +234,8 @@ class MonthlyPlanScreen extends StatelessWidget {
         .where(
           (t) =>
               t.type == TransactionType.expense &&
-              t.date.year == now.year &&
-              t.date.month == now.month,
+              t.date.year == currentMonth.year &&
+              t.date.month == currentMonth.month,
         )
         .fold(0.0, (sum, t) => sum + t.amount);
 
@@ -179,31 +249,67 @@ class MonthlyPlanScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: () => context.push(AppRoutes.setupMonthlyPlanScreen),
-              icon: const Icon(Icons.edit, size: 16),
-              label: const Text('تعديل الخطة'),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 12.w),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(color: Colors.black12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.date_range,
+                      size: 14.r,
+                      color: AppColors.primaryColor,
+                    ),
+                    6.horizontalSpace,
+                    Text(
+                      dateRangeStr,
+                      style: AppTextStyle.style12Bold.copyWith(
+                        color: AppColors.primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () => context.push(AppRoutes.setupMonthlyPlanScreen),
+                icon: Icon(
+                  Icons.edit,
+                  color: AppColors.primaryTextColor,
+                  size: 14.r,
+                ),
+                label: Text(
+                  'تعديل الخطة',
+                  style: AppTextStyle.style12Bold.copyWith(
+                    color: AppColors.primaryTextColor,
+                  ),
+                ),
+              ),
+            ],
           ),
+          12.verticalSpace,
 
           Container(
             padding: EdgeInsets.all(24.r),
             decoration: BoxDecoration(
-              color: const Color(0xFF00A86B),
+              gradient: appGradient(),
               borderRadius: BorderRadius.circular(16.r),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  'الباقي من الراتب',
+                  'الباقي من الدخل',
                   style: TextStyle(color: Colors.white70, fontSize: 14.sp),
                 ),
                 4.verticalSpace,
                 Text(
-                  '${remainingFromIncome.toStringAsFixed(2)} ريال',
+                  '${remainingFromIncome.toStringAsFixed(2)} ج.م',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 32.sp,
@@ -264,7 +370,7 @@ class MonthlyPlanScreen extends StatelessWidget {
                             ),
                             4.horizontalSpace,
                             Text(
-                              'الدخل الكلي',
+                              'الدخل المخطط',
                               style: TextStyle(
                                 color: Colors.white70,
                                 fontSize: 12.sp,
@@ -295,14 +401,13 @@ class MonthlyPlanScreen extends StatelessWidget {
               style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
             ),
             12.verticalSpace,
-
             ...plan.expenses.map(
               (expense) => _buildAllocationProgressTile(
                 context,
                 expense,
                 allTxs,
-                now,
-                context.read<TransactionCubit>().state.allCategories,
+                currentMonth,
+                allCategories,
               ),
             ),
             24.verticalSpace,
@@ -320,7 +425,7 @@ class MonthlyPlanScreen extends StatelessWidget {
 
           if (plan.debts.isNotEmpty) ...[
             Text(
-              'الديون',
+              'الديون والمتكررة',
               style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
             ),
             12.verticalSpace,
@@ -328,6 +433,199 @@ class MonthlyPlanScreen extends StatelessWidget {
             30.verticalSpace,
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildAllocationProgressTile(
+    BuildContext context,
+    PlannedExpense expense,
+    List<Transaction> allTxs,
+    DateTime currentMonth,
+    List<TransactionCategory> allCategories,
+  ) {
+    final budgeted = expense.budgetedAmount;
+    final subCategories = allCategories
+        .where((TransactionCategory? c) => c?.parentId == expense.categoryId)
+        .map((TransactionCategory? c) => c?.id ?? '')
+        .where((String id) => id.isNotEmpty)
+        .toList();
+    final relevantIds = [expense.categoryId, ...subCategories];
+
+    final actualSpent = allTxs
+        .where(
+          (t) =>
+              relevantIds.contains(t.categoryId) &&
+              t.type == TransactionType.expense &&
+              t.date.year == currentMonth.year &&
+              t.date.month == currentMonth.month,
+        )
+        .fold(0.0, (sum, t) => sum + t.amount);
+
+    final remaining = budgeted - actualSpent;
+    final progress = budgeted > 0
+        ? (actualSpent / budgeted).clamp(0.0, 1.0)
+        : 0.0;
+    final isOverBudget = remaining < 0;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.r),
+        side: const BorderSide(color: Colors.black12),
+      ),
+      margin: EdgeInsets.only(bottom: 12.h),
+      child: InkWell(
+        onTap: () => _showTransactionsBottomSheet(
+          context,
+          expense.name,
+          relevantIds,
+          currentMonth,
+        ),
+        borderRadius: BorderRadius.circular(12.r),
+        child: Padding(
+          padding: EdgeInsets.all(16.r),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        remaining.toStringAsFixed(2),
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                          color: isOverBudget
+                              ? Colors.red
+                              : AppColors.primaryTextColor,
+                        ),
+                      ),
+                      Text(
+                        isOverBudget ? 'متجاوز' : 'متبقي',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            expense.name,
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          8.horizontalSpace,
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            size: 12.r,
+                            color: Colors.grey,
+                          ),
+                        ],
+                      ),
+                      Text(
+                        'صُرف ${actualSpent.toStringAsFixed(2)} من ${budgeted.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              12.verticalSpace,
+              LinearProgressIndicator(
+                value: progress,
+                backgroundColor: Colors.grey.shade200,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  isOverBudget ? Colors.red : AppColors.primaryTextColor,
+                ),
+                minHeight: 6.h,
+                borderRadius: BorderRadius.circular(3.r),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWalletTile(Wallet wallet) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.r),
+        side: const BorderSide(color: Colors.black12),
+      ),
+      margin: EdgeInsets.only(bottom: 12.h),
+      child: ListTile(
+        title: Text(
+          wallet.name,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(
+          '${wallet.monthlyAmount?.toStringAsFixed(2)} ج.م شهرياً',
+        ),
+        leading: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              wallet.balance.toStringAsFixed(2),
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const Text(
+              'الرصيد',
+              style: TextStyle(fontSize: 10, color: Colors.grey),
+            ),
+          ],
+        ),
+        trailing: CircleAvatar(
+          backgroundColor: AppColors.primaryTextColor.withAlpha(55),
+          child: const Icon(
+            Icons.account_balance_wallet,
+            color: AppColors.primaryTextColor,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDebtTile(PlannedDebt debt) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.r),
+        side: BorderSide(color: Colors.red.shade100),
+      ),
+      color: Colors.red.shade50,
+      margin: EdgeInsets.only(bottom: 12.h),
+      child: ListTile(
+        title: Text(
+          debt.name,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text('يوم ${debt.executionDay} من كل شهر'),
+        leading: Text(
+          '-${debt.amount.toStringAsFixed(2)}',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.red.shade700,
+          ),
+        ),
+        trailing: CircleAvatar(
+          backgroundColor: Colors.red.shade100,
+          child: Icon(Icons.credit_card, color: Colors.red.shade700),
+        ),
       ),
     );
   }
@@ -378,12 +676,11 @@ class MonthlyPlanScreen extends StatelessWidget {
                     ],
                   ),
                   16.verticalSpace,
-
                   Expanded(
                     child: transactions.isEmpty
                         ? Center(
                             child: Text(
-                              'لا توجد عمليات مسجلة على هذا المخصص في الشهر الحالي',
+                              'لا توجد عمليات مسجلة في $categoryName خلال ${_getMonthArabicName(currentMonth.month)}',
                               style: TextStyle(
                                 color: Colors.grey,
                                 fontSize: 14.sp,
@@ -399,7 +696,6 @@ class MonthlyPlanScreen extends StatelessWidget {
                               final tx = transactions[index];
                               final dateStr =
                                   '${_getMonthArabicName(tx.date.month)} ${tx.date.year} ${tx.date.day}';
-
                               return Container(
                                 padding: EdgeInsets.symmetric(
                                   horizontal: 16.w,
@@ -418,7 +714,8 @@ class MonthlyPlanScreen extends StatelessWidget {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          tx.note!.isNotEmpty
+                                          (tx.note != null &&
+                                                  tx.note!.isNotEmpty)
                                               ? tx.note!
                                               : 'غير محدد',
                                           style: TextStyle(
@@ -476,196 +773,5 @@ class MonthlyPlanScreen extends StatelessWidget {
       'ديسمبر',
     ];
     return months[month - 1];
-  }
-
-  Widget _buildAllocationProgressTile(
-    BuildContext context,
-    PlannedExpense expense,
-    List<Transaction> allTxs,
-    DateTime now,
-    List<TransactionCategory> allCategories,
-  ) {
-    final budgeted = expense.budgetedAmount;
-
-    final subCategories = allCategories
-        .where((TransactionCategory? c) => c?.parentId == expense.categoryId)
-        .map((TransactionCategory? c) => c?.id ?? '')
-        .where((String id) => id.isNotEmpty)
-        .toList();
-    final relevantIds = [expense.categoryId, ...subCategories];
-
-    final actualSpent = allTxs
-        .where(
-          (t) =>
-              relevantIds.contains(t.categoryId) &&
-              t.type == TransactionType.expense &&
-              t.date.year == now.year &&
-              t.date.month == now.month,
-        )
-        .fold(0.0, (sum, t) => sum + t.amount);
-
-    final remaining = budgeted - actualSpent;
-    final progress = budgeted > 0
-        ? (actualSpent / budgeted).clamp(0.0, 1.0)
-        : 0.0;
-    final isOverBudget = remaining < 0;
-
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-        side: const BorderSide(color: Colors.black12),
-      ),
-      margin: EdgeInsets.only(bottom: 12.h),
-      child: InkWell(
-        onTap: () => _showTransactionsBottomSheet(
-          context,
-          expense.name,
-          relevantIds,
-          now,
-        ),
-        borderRadius: BorderRadius.circular(12.r),
-        child: Padding(
-          padding: EdgeInsets.all(16.r),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        remaining.toStringAsFixed(2),
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.bold,
-                          color: isOverBudget
-                              ? Colors.red
-                              : const Color(0xFF00A86B),
-                        ),
-                      ),
-                      Text(
-                        isOverBudget ? 'متجاوز' : 'متبقي',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12.sp,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            expense.name,
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          8.horizontalSpace,
-                          Icon(
-                            Icons.arrow_forward_ios,
-                            size: 12.r,
-                            color: Colors.grey,
-                          ),
-                        ],
-                      ),
-                      Text(
-                        'صُرف ${actualSpent.toStringAsFixed(2)} من ${budgeted.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 12.sp,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              12.verticalSpace,
-              LinearProgressIndicator(
-                value: progress,
-                backgroundColor: Colors.grey.shade200,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  isOverBudget ? Colors.red : const Color(0xFF00A86B),
-                ),
-                minHeight: 6.h,
-                borderRadius: BorderRadius.circular(3.r),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWalletTile(Wallet wallet) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-        side: const BorderSide(color: Colors.black12),
-      ),
-      margin: EdgeInsets.only(bottom: 12.h),
-      child: ListTile(
-        title: Text(
-          wallet.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(
-          '${wallet.monthlyAmount?.toStringAsFixed(2)} ريال شهرياً',
-        ),
-        leading: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              wallet.balance.toStringAsFixed(2),
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const Text(
-              'الرصيد',
-              style: TextStyle(fontSize: 10, color: Colors.grey),
-            ),
-          ],
-        ),
-        trailing: CircleAvatar(
-          backgroundColor: Colors.blue.shade50,
-          child: const Icon(Icons.account_balance_wallet, color: Colors.blue),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDebtTile(PlannedDebt debt) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-        side: BorderSide(color: Colors.red.shade100),
-      ),
-      color: Colors.red.shade50,
-      margin: EdgeInsets.only(bottom: 12.h),
-      child: ListTile(
-        title: Text(
-          debt.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text('يوم ${debt.executionDay} من كل شهر'),
-        leading: Text(
-          '-${debt.amount.toStringAsFixed(2)}',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.red.shade700,
-          ),
-        ),
-        trailing: CircleAvatar(
-          backgroundColor: Colors.red.shade100,
-          child: Icon(Icons.credit_card, color: Colors.red.shade700),
-        ),
-      ),
-    );
   }
 }
