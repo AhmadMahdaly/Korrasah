@@ -22,39 +22,6 @@ class FinancialGoalsScreen extends StatelessWidget {
         isLeading: true,
         subTitle: SubTitle(),
         title: 'الأهداف المالية',
-        // bottom: Container(
-        //   height: 50.h,
-        //   decoration: BoxDecoration(
-        //     border: Border.all(
-        //       color: AppColors.scaffoldBackgroundLightColor,
-        //       width: 0.5.w,
-        //     ),
-        //     borderRadius: BorderRadius.circular(kRadius),
-        //   ),
-        //   child: TabBar(
-        //     indicatorPadding: EdgeInsets.all(3.r),
-        //     indicator: BoxDecoration(
-        //       borderRadius: BorderRadius.circular(kRadius),
-        //       color: AppColors.scaffoldBackgroundLightColor,
-        //     ),
-        //     indicatorSize: TabBarIndicatorSize.tab,
-        //     dividerHeight: 0,
-        //     labelColor: AppColors.primaryColor,
-        //     unselectedLabelColor: AppColors.scaffoldBackgroundLightColor,
-        //     labelStyle: AppTextStyles.style14W600.copyWith(
-        //       fontFamily: kPrimaryFont,
-        //     ),
-        //     unselectedLabelStyle: AppTextStyles.style14W600.copyWith(
-        //       fontFamily: kPrimaryFont,
-        //     ),
-        //     tabs: const [
-        //       Tab(text: 'الأهداف'),
-        //       Tab(text: 'المشتريات'),
-        //       Tab(text: 'الديون'),
-        //     ],
-        //   ),
-        // ),
-        // // heightBar: 170.h,
       ),
       body: _GoalsView(),
     );

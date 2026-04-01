@@ -1,5 +1,3 @@
-// ignore_for_file: unnecessary_breaks, parameter_assignments
-
 import 'package:flutter/material.dart';
 import 'package:opration/core/constants.dart';
 import 'package:opration/core/responsive/responsive_config.dart';
@@ -15,13 +13,10 @@ class CalculatorDialog extends StatefulWidget {
 }
 
 class _CalculatorDialogState extends State<CalculatorDialog> {
-  String _expression = ''; // التعبير الكامل
-  String _output = '0'; // الناتج النهائي
+  String _expression = '';
+  String _output = '0';
   bool _justCalculated = false;
 
-  //--------------------------------------------------------------------
-  //  دالة حساب التعبير بالكامل مع دعم الأقواس
-  //--------------------------------------------------------------------
   double _evaluateExpression(String expr) {
     try {
       expr = expr.replaceAll('×', '*').replaceAll('÷', '/');
@@ -34,9 +29,6 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
     }
   }
 
-  //--------------------------------------------------------------------
-  // تجزئة التعبير إلى Tokens
-  //--------------------------------------------------------------------
   List<String> _tokenize(String expr) {
     final tokens = <String>[];
     var number = '';
@@ -59,9 +51,6 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
     return tokens;
   }
 
-  //--------------------------------------------------------------------
-  // تحويل INFIX → POSTFIX (خوارزمية Shunting Yard)
-  //--------------------------------------------------------------------
   List<String> _toPostfix(List<String> tokens) {
     final output = <String>[];
     final stack = <String>[];
@@ -84,7 +73,7 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
         while (stack.isNotEmpty && stack.last != '(') {
           output.add(stack.removeLast());
         }
-        if (stack.isNotEmpty) stack.removeLast(); // remove "("
+        if (stack.isNotEmpty) stack.removeLast();
       }
     }
 
@@ -95,9 +84,6 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
     return output;
   }
 
-  //--------------------------------------------------------------------
-  // تنفيذ POSTFIX
-  //--------------------------------------------------------------------
   double _evalPostfix(List<String> postfix) {
     final stack = <double>[];
 
@@ -111,25 +97,18 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
         switch (token) {
           case '+':
             stack.add(a + b);
-            break;
           case '-':
             stack.add(a - b);
-            break;
           case '*':
             stack.add(a * b);
-            break;
           case '/':
             stack.add(a / b);
-            break;
         }
       }
     }
     return stack.first;
   }
 
-  //--------------------------------------------------------------------
-  // ضغط الأزرار
-  //--------------------------------------------------------------------
   void _buttonPressed(String buttonText) {
     if (buttonText == '⌫') {
       _backspace();
@@ -160,7 +139,6 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
       if (result.isNaN) {
         _output = 'غلطة';
       } else {
-        // إذا كان الناتج عددًا صحيحًا → عرضه بدون كسور
         if (result % 1 == 0) {
           _output = result.toInt().toString();
         } else {
@@ -189,9 +167,6 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
     });
   }
 
-  //--------------------------------------------------------------------
-  // زر واحد
-  //--------------------------------------------------------------------
   Widget _buildButton(String text, {Color? color}) {
     return Expanded(
       child: Padding(
@@ -220,9 +195,6 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
     }
   }
 
-  //--------------------------------------------------------------------
-  // واجهة الـ Dialog
-  //--------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -251,7 +223,6 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
             ),
             const Divider(),
 
-            // الأزرار
             Column(
               children: [
                 Row(

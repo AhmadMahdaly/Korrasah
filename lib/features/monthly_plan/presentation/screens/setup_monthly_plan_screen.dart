@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -13,6 +15,7 @@ import 'package:opration/features/monthly_plan/presentation/controllers/monthly_
 import 'package:opration/features/transactions/domain/entities/transaction.dart';
 import 'package:opration/features/transactions/domain/entities/transaction_category.dart';
 import 'package:opration/features/transactions/presentation/controllers/transactions_cubit/transactions_cubit.dart';
+import 'package:opration/features/transactions/presentation/screens/widgets/recurrence_selector.dart';
 import 'package:opration/features/wallets/domain/entities/wallet.dart';
 import 'package:opration/features/wallets/presentation/cubit/wallet_cubit.dart';
 import 'package:uuid/uuid.dart';
@@ -338,7 +341,17 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
       context,
       'تحديد هدف الادخار الشهري',
       null,
-      (name, amount, day, type, sourceId, endAction, isFixed, targetWalletId) {
+      (
+        name,
+        amount,
+        type,
+        recurrenceType,
+        selectedDays,
+        sourceId,
+        endAction,
+        isFixed,
+        targetWalletId,
+      ) {
         final updated = savingsWallet.copyWith(monthlyAmount: amount);
         context.read<WalletCubit>().updateWallet(updated);
       },
@@ -810,7 +823,17 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
               },
             )
           : null,
-      (name, amount, day, type, sourceId, endAction, isFixed, targetWalletId) {
+      (
+        name,
+        amount,
+        type,
+        recurrenceType,
+        selectedDays,
+        sourceId,
+        endAction,
+        isFixed,
+        targetWalletId,
+      ) {
         final txCubit = context.read<TransactionCubit>();
         var category = txCubit.state.allCategories
             .where((c) => c.name == name && c.type == TransactionType.expense)
@@ -895,7 +918,17 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
               },
             )
           : null,
-      (name, amount, day, type, sourceId, endAction, isFixed, targetWalletId) {
+      (
+        name,
+        amount,
+        type,
+        recurrenceType,
+        selectedDays,
+        sourceId,
+        endAction,
+        isFixed,
+        targetWalletId,
+      ) {
         final txCubit = context.read<TransactionCubit>();
         var category = txCubit.state.allCategories
             .where((c) => c.name == name && c.type == TransactionType.income)
@@ -915,8 +948,9 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
           final updated = itemToEdit.copyWith(
             name: name,
             amount: amount,
-            executionDay: day,
             executionType: type,
+            recurrenceType: recurrenceType,
+            selectedDays: selectedDays,
             isFixed: isFixed,
             targetWalletId: targetWalletId,
           );
@@ -932,8 +966,9 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
             name: name,
             amount: amount,
             date: DateTime.now(),
-            executionDay: day,
             executionType: type,
+            recurrenceType: recurrenceType,
+            selectedDays: selectedDays,
             isFixed: isFixed,
             targetWalletId: targetWalletId,
           );
@@ -944,8 +979,9 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
       },
       initialName: itemToEdit?.name,
       initialAmount: itemToEdit?.amount,
-      initialDay: itemToEdit?.executionDay,
       initialType: itemToEdit?.executionType,
+      initialRecurrenceType: itemToEdit?.recurrenceType,
+      initialSelectedDays: itemToEdit?.selectedDays,
       initialIsFixed: itemToEdit?.isFixed,
       initialTargetWalletId: itemToEdit?.targetWalletId,
       nameEnabled: !isDefault,
@@ -974,7 +1010,17 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
               },
             )
           : null,
-      (name, amount, day, type, sourceId, endAction, isFixed, targetWalletId) {
+      (
+        name,
+        amount,
+        type,
+        recurrenceType,
+        selectedDays,
+        sourceId,
+        endAction,
+        isFixed,
+        targetWalletId,
+      ) {
         final executionTypeEnum = ExecutionType.values.firstWhere(
           (e) => e.name == type.name,
           orElse: () => ExecutionType.confirm,
@@ -984,9 +1030,11 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
           final updated = walletToEdit.copyWith(
             name: name,
             monthlyAmount: amount,
-            executionDay: day,
+
             executionType: executionTypeEnum,
             sourceWalletId: sourceId,
+            recurrenceType: recurrenceType,
+            selectedDays: selectedDays,
           );
           context.read<WalletCubit>().updateWallet(updated);
         } else {
@@ -996,9 +1044,10 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
             balance: 0.0,
             type: WalletType.sideLinked,
             monthlyAmount: amount,
-            executionDay: day,
             executionType: executionTypeEnum,
             sourceWalletId: sourceId,
+            recurrenceType: recurrenceType,
+            selectedDays: selectedDays,
           );
           context.read<WalletCubit>().addWallet(newWallet);
         }
@@ -1006,7 +1055,7 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
       showIncomeSource: true,
       initialName: walletToEdit?.name,
       initialAmount: walletToEdit?.monthlyAmount,
-      initialDay: walletToEdit?.executionDay,
+
       initialSourceId: walletToEdit?.sourceWalletId,
       initialType: walletToEdit != null
           ? PlanExecutionType.values.firstWhere(
@@ -1014,6 +1063,8 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
               orElse: () => PlanExecutionType.confirm,
             )
           : null,
+      initialRecurrenceType: walletToEdit?.recurrenceType,
+      initialSelectedDays: walletToEdit?.selectedDays,
     );
   }
 
@@ -1043,14 +1094,25 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
               },
             )
           : null,
-      (name, amount, day, type, sourceId, endAction, isFixed, targetWalletId) {
+      (
+        name,
+        amount,
+        type,
+        recurrenceType,
+        selectedDays,
+        sourceId,
+        endAction,
+        isFixed,
+        targetWalletId,
+      ) {
         if (isEdit) {
           final updated = itemToEdit.copyWith(
             name: name,
             amount: amount,
-            executionDay: day,
             executionType: type,
             sourceId: sourceId,
+            recurrenceType: recurrenceType,
+            selectedDays: selectedDays,
           );
           final newList = plan.debts
               .map((d) => d.id == updated.id ? updated : d)
@@ -1063,9 +1125,10 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
             id: const Uuid().v4(),
             name: name,
             amount: amount,
-            executionDay: day,
             executionType: type,
             sourceId: sourceId,
+            recurrenceType: recurrenceType,
+            selectedDays: selectedDays,
           );
           context.read<MonthlyPlanCubit>().updatePlan(
             plan.copyWith(debts: [...plan.debts, newDebt]),
@@ -1075,9 +1138,10 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
       showIncomeSource: true,
       initialName: itemToEdit?.name,
       initialAmount: itemToEdit?.amount,
-      initialDay: itemToEdit?.executionDay,
       initialType: itemToEdit?.executionType,
       initialSourceId: itemToEdit?.sourceId,
+      initialRecurrenceType: itemToEdit?.recurrenceType,
+      initialSelectedDays: itemToEdit?.selectedDays,
     );
   }
 
@@ -1088,8 +1152,9 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
     Function(
       String name,
       double amount,
-      int day,
       PlanExecutionType type,
+      RecurrenceType recurrenceType,
+      List<int> selectedDays,
       String? sourceId,
       EndOfMonthAction endAction,
       bool isFixed,
@@ -1103,8 +1168,9 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
     bool showExpenseWallet = false,
     String? initialName,
     double? initialAmount,
-    int? initialDay,
     PlanExecutionType? initialType,
+    RecurrenceType? initialRecurrenceType,
+    List<int>? initialSelectedDays,
     String? initialSourceId,
     EndOfMonthAction? initialEndAction,
     bool? initialIsFixed,
@@ -1117,7 +1183,10 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
           ? initialAmount.toString()
           : '',
     );
-    final dayCtrl = TextEditingController(text: initialDay?.toString() ?? '1');
+
+    var selectedRecurrence = initialRecurrenceType ?? RecurrenceType.monthly;
+    var currentSelectedDays = initialSelectedDays ?? [1];
+
     var selectedType = initialType ?? PlanExecutionType.manual;
     var selectedEndAction =
         initialEndAction ?? EndOfMonthAction.transferToSavings;
@@ -1245,24 +1314,22 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                       10.verticalSpace,
 
                       if (!showEndOfMonth) ...[
-                        TextFormField(
-                          controller: dayCtrl,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: 'يوم التنفيذ',
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10.r),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
+                        RecurrenceSelector(
+                          initialType: selectedRecurrence,
+                          initialDays: currentSelectedDays,
+                          onChanged: (type, days) {
+                            setState(() {
+                              selectedRecurrence = type;
+                              currentSelectedDays = List.from(days);
+                            });
+                          },
                         ),
                         10.verticalSpace,
+
                         DropdownButtonFormField<PlanExecutionType>(
                           initialValue: selectedType,
                           decoration: InputDecoration(
-                            labelText: 'النوع',
+                            labelText: 'نوع التنفيذ (تأكيد/تلقائي)',
                             filled: true,
                             fillColor: Colors.grey.shade50,
                             border: OutlineInputBorder(
@@ -1400,9 +1467,6 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                         final amount = isFixed
                             ? (double.tryParse(amountCtrl.text) ?? 0.0)
                             : 0.0;
-                        final day = isFixed
-                            ? (int.tryParse(dayCtrl.text) ?? 1)
-                            : 1;
                         final type = isFixed
                             ? selectedType
                             : PlanExecutionType.manual;
@@ -1412,8 +1476,9 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                           onSave(
                             nameCtrl.text,
                             amount,
-                            day,
                             type,
+                            selectedRecurrence,
+                            currentSelectedDays,
                             selectedSourceId,
                             selectedEndAction,
                             isFixed,

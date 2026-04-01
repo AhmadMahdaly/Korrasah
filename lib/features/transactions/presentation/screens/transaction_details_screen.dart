@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -125,7 +123,7 @@ class TransactionDetailsScreen extends StatelessWidget {
               children: [
                 4.verticalSpace,
                 _FilterControlBar(),
-                // 4.verticalSpace,
+
                 if (state.isLoading)
                   Padding(
                     padding: EdgeInsets.symmetric(vertical: 8.r),

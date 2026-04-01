@@ -9,6 +9,7 @@ analyzer:
     inference_failure_on_instance_creation: ignore
     lines_longer_than_80_chars: ignore
     no_default_cases: ignore
+    parameter_assignments: ignore
     prefer_int_literals: ignore
     strict_raw_type: ignore
     unnecessary_null_comparison: ignore

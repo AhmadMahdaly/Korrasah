@@ -465,12 +465,10 @@ class WalletsScreen extends StatelessWidget {
             final wallet = actualWallets[index];
             final isLinked = wallet.type == WalletType.sideLinked;
 
-            // استخدام Dismissible لتفعيل السحب (Swipe to Delete)
             return Dismissible(
-              key: Key(wallet.id), // يجب أن يكون المفتاح فريداً لكل عنصر
-              direction: DismissDirection
-                  .endToStart, // السحب من اليسار لليمين (أو العكس حسب اتجاه التطبيق RTL/LTR)
-              // تصميم الخلفية الحمراء التي تظهر تحت العنصر عند سحبه
+              key: Key(wallet.id),
+              direction: DismissDirection.endToStart,
+
               background: Container(
                 alignment: Alignment.centerLeft,
                 padding: EdgeInsets.symmetric(horizontal: 20.w),
@@ -485,7 +483,6 @@ class WalletsScreen extends StatelessWidget {
                 ),
               ),
 
-              // إظهار نافذة تأكيد قبل الحذف النهائي
               confirmDismiss: (direction) async {
                 return showDialog(
                   context: context,
@@ -503,8 +500,7 @@ class WalletsScreen extends StatelessWidget {
                       ),
                       actions: [
                         TextButton(
-                          onPressed: () =>
-                              Navigator.of(ctx).pop(false), // إلغاء الحذف
+                          onPressed: () => Navigator.of(ctx).pop(false),
                           child: const Text(
                             'تراجع',
                             style: TextStyle(color: Colors.grey),
@@ -514,8 +510,7 @@ class WalletsScreen extends StatelessWidget {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red,
                           ),
-                          onPressed: () =>
-                              Navigator.of(ctx).pop(true), // تأكيد الحذف
+                          onPressed: () => Navigator.of(ctx).pop(true),
                           child: const Text(
                             'حذف',
                             style: TextStyle(color: Colors.white),
@@ -527,14 +522,8 @@ class WalletsScreen extends StatelessWidget {
                 );
               },
 
-              // الدالة التي يتم تنفيذها بعد السحب والتأكيد
               onDismissed: (direction) {
-                // 1. حذف المحفظة
                 context.read<WalletCubit>().deleteWallet(wallet.id);
-
-                // 2. إزالة المبلغ من الميزانية (بحذف معاملاتها)
-                // تنبيه: ستحتاج إلى إضافة دالة deleteTransactionsByWalletId في TransactionCubit
-                // context.read<TransactionCubit>().deleteTransactionsByWalletId(wallet.id);
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -545,7 +534,6 @@ class WalletsScreen extends StatelessWidget {
                 );
               },
 
-              // واجهة كارت المحفظة (التي صممتها سابقاً كما هي بدون تغيير)
               child: InkWell(
                 onTap: () =>
                     _showAddEditSideWalletDialog(context, wallet: wallet),

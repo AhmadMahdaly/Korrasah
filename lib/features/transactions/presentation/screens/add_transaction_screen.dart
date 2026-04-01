@@ -32,7 +32,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   @override
   void initState() {
     super.initState();
-    // فحص العمليات المجدولة عند فتح الشاشة
+
     context.read<TransactionCubit>().checkScheduledTransactions();
   }
 
@@ -45,7 +45,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         appBar: PageHeader(
           isLeading: false,
           heightBar: 145.h,
-          // --- التبويبات (Tabs) كما طلبت ---
+
           bottom: Container(
             height: 50.h,
             margin: EdgeInsets.symmetric(horizontal: 16.w),
@@ -78,7 +78,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ],
             ),
           ),
-          // --- زر الإشعارات المعلق ---
+
           actions: [
             BlocBuilder<TransactionCubit, TransactionState>(
               builder: (context, state) {
@@ -134,9 +134,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         ),
         body: const TabBarView(
           children: [
-            // تاب المصاريف
             _TransactionForm(type: TransactionType.expense),
-            // تاب الدخل
+
             _TransactionForm(type: TransactionType.income),
           ],
         ),
@@ -145,9 +144,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 }
 
-// =================================================================
-// أداة الفورم الذكية (تُستخدم مرتين: مرة للمصاريف ومرة للدخل)
-// =================================================================
 class _TransactionForm extends StatefulWidget {
   const _TransactionForm({required this.type});
   final TransactionType type;
@@ -210,10 +206,8 @@ class _TransactionFormState extends State<_TransactionForm> {
         walletId: _selectedWalletId!,
       );
 
-      // حفظ المعاملة
       context.read<TransactionCubit>().addTransaction(transaction);
 
-      // تحديث رصيد المحفظة
       context.read<WalletCubit>().updateWalletBalance(
         _selectedWalletId!,
         widget.type == TransactionType.income ? amount : -amount,
@@ -346,7 +340,6 @@ class _TransactionFormState extends State<_TransactionForm> {
           builder: (context, planState) {
             return BlocBuilder<WalletCubit, WalletState>(
               builder: (context, walletState) {
-                // استبعاد الميزانية الرئيسية ومحفظة التوفير من الظهور هنا
                 final wallets = (walletState is WalletLoaded)
                     ? walletState.wallets
                           .where(
@@ -368,7 +361,6 @@ class _TransactionFormState extends State<_TransactionForm> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 1. المبلغ
                         Text(
                           'المبلغ',
                           style: TextStyle(
@@ -416,7 +408,6 @@ class _TransactionFormState extends State<_TransactionForm> {
                         ),
                         24.verticalSpace,
 
-                        // 2. المحفظة الفعلية
                         Text(
                           'المحفظة',
                           style: TextStyle(
@@ -448,7 +439,6 @@ class _TransactionFormState extends State<_TransactionForm> {
                         ),
                         24.verticalSpace,
 
-                        // 3. المخصص (Main Category)
                         Text(
                           widget.type == TransactionType.expense
                               ? 'المخصص *'
@@ -495,7 +485,6 @@ class _TransactionFormState extends State<_TransactionForm> {
                         ),
                         24.verticalSpace,
 
-                        // 4. الفئة (Sub Category)
                         if (_selectedMainCategoryId != null) ...[
                           Text(
                             'الفئة *',
@@ -596,7 +585,6 @@ class _TransactionFormState extends State<_TransactionForm> {
                           24.verticalSpace,
                         ],
 
-                        // 5. ملاحظات
                         Text(
                           'ملاحظات (اختياري)',
                           style: TextStyle(

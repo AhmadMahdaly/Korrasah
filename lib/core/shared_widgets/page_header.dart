@@ -65,9 +65,10 @@ class PageHeader extends StatelessWidget implements PreferredSizeWidget {
 
 class SubTitle extends StatelessWidget {
   const SubTitle({
+    this.textColor,
     super.key,
   });
-
+  final Color? textColor;
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -76,18 +77,20 @@ class SubTitle extends StatelessWidget {
         SvgImage(
           imagePath: 'assets/image/svg/quote-1.svg',
           height: 14.h,
+          color: textColor ?? AppColors.white,
         ),
         4.horizontalSpace,
         Text(
           'ما تفعله الآن هو ما تجني ثماره في الغد',
           style: AppTextStyle.style14W400.copyWith(
-            color: AppColors.white,
+            color: textColor ?? AppColors.white,
           ),
         ),
         4.horizontalSpace,
         SvgImage(
           imagePath: 'assets/image/svg/quote-1.svg',
           height: 14.h,
+          color: textColor ?? AppColors.white,
         ),
       ],
     );

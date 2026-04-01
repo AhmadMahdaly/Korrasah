@@ -1,5 +1,3 @@
-// ignore_for_file: constant_identifier_names
-
 import 'dart:convert';
 
 import 'package:opration/core/services/cache_helper/cache_values.dart';
@@ -61,56 +59,7 @@ class TransactionLocalDataSourceImpl implements TransactionLocalDataSource {
     if (list.isNotEmpty) {
       return list.map(TransactionCategory.fromJson).toList();
     } else {
-      final defaultCategories = <TransactionCategory>[
-        // TransactionCategory(
-        //   id: uuid.v4(),
-        //   name: 'المرتب',
-        //   colorValue: Colors.green.toARGB32(),
-        //   type: TransactionType.income,
-        // ),
-        // TransactionCategory(
-        //   id: uuid.v4(),
-        //   name: 'مواصلات',
-        //   colorValue: Colors.orange.toARGB32(),
-        //   type: TransactionType.expense,
-        // ),
-        // TransactionCategory(
-        //   id: uuid.v4(),
-        //   name: 'أكل',
-        //   colorValue: Colors.red.toARGB32(),
-        //   type: TransactionType.expense,
-        // ),
-        // TransactionCategory(
-        //   id: uuid.v4(),
-        //   name: 'سوبر ماركت',
-        //   colorValue: Colors.blue.toARGB32(),
-        //   type: TransactionType.expense,
-        // ),
-        // TransactionCategory(
-        //   id: uuid.v4(),
-        //   name: 'خروج',
-        //   colorValue: Colors.purple.toARGB32(),
-        //   type: TransactionType.expense,
-        // ),
-        // TransactionCategory(
-        //   id: uuid.v4(),
-        //   name: 'رصيد',
-        //   colorValue: Colors.teal.toARGB32(),
-        //   type: TransactionType.expense,
-        // ),
-        // TransactionCategory(
-        //   id: uuid.v4(),
-        //   name: 'استثمار',
-        //   colorValue: Colors.lime.toARGB32(),
-        //   type: TransactionType.expense,
-        // ),
-        // TransactionCategory(
-        //   id: uuid.v4(),
-        //   name: 'هدايا',
-        //   colorValue: Colors.cyan.toARGB32(),
-        //   type: TransactionType.expense,
-        // ),
-      ];
+      final defaultCategories = <TransactionCategory>[];
       await _saveEncodedList(
         CacheKeys.cachedCategories,
         defaultCategories.map((c) => c.toJson()).toList(),
@@ -238,7 +187,6 @@ class TransactionLocalDataSourceImpl implements TransactionLocalDataSource {
       plan = MonthlyPlan(id: yearMonth);
     }
 
-    // التأكد من وجود مصدر الدخل الافتراضي (الراتب) دائماً
     if (!plan.incomes.any((i) => i.id == 'default_salary')) {
       final defaultSalary = PlannedIncome(
         id: 'default_salary',
@@ -248,7 +196,7 @@ class TransactionLocalDataSourceImpl implements TransactionLocalDataSource {
         executionDay: 1,
         executionType: PlanExecutionType.manual,
       );
-      // إضافته في بداية القائمة
+
       plan = plan.copyWith(incomes: [defaultSalary, ...plan.incomes]);
     }
 

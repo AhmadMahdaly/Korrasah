@@ -21,7 +21,7 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   void initState() {
     super.initState();
-    // فحص الديون المستحقة وخصمها
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DebtCubit>().processDueDebts(
         context.read<TransactionCubit>(),

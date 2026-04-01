@@ -174,7 +174,7 @@ class SettingsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.black.withOpacity(0.05)),
+        border: Border.all(color: Colors.black.withAlpha(15)),
       ),
       child: ListTile(
         contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
@@ -193,7 +193,7 @@ class SettingsScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(12.r),
             boxShadow: [
               BoxShadow(
-                color: gradientColors.last.withOpacity(0.3),
+                color: gradientColors.last.withAlpha(77),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),

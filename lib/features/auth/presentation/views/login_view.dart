@@ -6,7 +6,6 @@ import 'package:opration/core/router/app_routes.dart';
 import 'package:opration/core/shared_widgets/custom_primary_button.dart';
 import 'package:opration/core/shared_widgets/custom_primary_textfield.dart';
 import 'package:opration/core/shared_widgets/show_custom_snackbar.dart';
-import 'package:opration/core/shared_widgets/svg_image_widget.dart';
 import 'package:opration/core/theme/colors.dart';
 import 'package:opration/features/auth/presentation/cubit/login_cubit.dart';
 import 'package:opration/features/auth/presentation/views/widgets/welcome_user_widget.dart';
@@ -51,11 +50,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     30.verticalSpace,
-                    SvgImage(
-                      imagePath: 'assets/image/logo.svg',
-                      height: 150.h,
+                    Image.asset(
+                      'assets/image/logo.png',
+                      height: 200.h,
                     ),
-                    24.verticalSpace,
+
                     const LoginWelcomeUserWidget(),
                     30.verticalSpace,
 
@@ -76,6 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: double.infinity,
                         text: 'ابدأ',
                       ),
+                    30.verticalSpace,
                   ],
                 ),
               ),

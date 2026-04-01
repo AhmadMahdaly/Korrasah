@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
+import 'package:opration/features/transactions/domain/entities/transaction_category.dart';
 import 'package:uuid/uuid.dart';
 
 enum PlanExecutionType { manual, auto, confirm }
@@ -42,6 +43,10 @@ class PlannedIncome extends Equatable {
     this.isFixed = true,
     this.targetWalletId,
     this.walletId,
+
+    this.recurrenceType = RecurrenceType.none,
+    this.selectedDays = const [],
+    this.lastProcessedDate,
   });
 
   factory PlannedIncome.fromJson(Map<String, dynamic> map) {
@@ -60,6 +65,19 @@ class PlannedIncome extends Equatable {
       isFixed: map['isFixed'] as bool? ?? true,
       targetWalletId: map['targetWalletId'] as String?,
       walletId: map['walletId'] as String?,
+
+      recurrenceType: RecurrenceType.values.firstWhere(
+        (e) => e.name == map['recurrenceType'],
+        orElse: () => RecurrenceType.none,
+      ),
+      selectedDays:
+          (map['selectedDays'] as List<dynamic>?)
+              ?.map((e) => e as int)
+              .toList() ??
+          [],
+      lastProcessedDate: map['lastProcessedDate'] != null
+          ? DateTime.parse(map['lastProcessedDate'].toString())
+          : null,
     );
   }
 
@@ -73,6 +91,10 @@ class PlannedIncome extends Equatable {
   final String? targetWalletId;
   final String? walletId;
 
+  final RecurrenceType recurrenceType;
+  final List<int> selectedDays;
+  final DateTime? lastProcessedDate;
+
   @override
   List<Object?> get props => [
     id,
@@ -84,6 +106,9 @@ class PlannedIncome extends Equatable {
     isFixed,
     targetWalletId,
     walletId,
+    recurrenceType,
+    selectedDays,
+    lastProcessedDate,
   ];
 
   PlannedIncome copyWith({
@@ -96,6 +121,9 @@ class PlannedIncome extends Equatable {
     bool? isFixed,
     String? targetWalletId,
     String? walletId,
+    RecurrenceType? recurrenceType,
+    List<int>? selectedDays,
+    DateTime? lastProcessedDate,
   }) {
     return PlannedIncome(
       id: id ?? this.id,
@@ -107,6 +135,9 @@ class PlannedIncome extends Equatable {
       isFixed: isFixed ?? this.isFixed,
       targetWalletId: targetWalletId ?? this.targetWalletId,
       walletId: walletId ?? this.walletId,
+      recurrenceType: recurrenceType ?? this.recurrenceType,
+      selectedDays: selectedDays ?? this.selectedDays,
+      lastProcessedDate: lastProcessedDate ?? this.lastProcessedDate,
     );
   }
 
@@ -120,6 +151,9 @@ class PlannedIncome extends Equatable {
     'isFixed': isFixed,
     'targetWalletId': targetWalletId,
     'walletId': walletId,
+    'recurrenceType': recurrenceType.name,
+    'selectedDays': selectedDays,
+    'lastProcessedDate': lastProcessedDate?.toIso8601String(),
   };
 }
 
@@ -133,6 +167,11 @@ class PlannedExpense extends Equatable {
     this.sourceId,
     this.endOfMonthAction = EndOfMonthAction.keepRemaining,
     this.walletId,
+
+    this.recurrenceType = RecurrenceType.none,
+    this.selectedDays = const [],
+    this.startDate,
+    this.lastProcessedDate,
   });
 
   factory PlannedExpense.fromJson(Map<String, dynamic> map) {
@@ -147,6 +186,22 @@ class PlannedExpense extends Equatable {
         orElse: () => EndOfMonthAction.keepRemaining,
       ),
       walletId: map['walletId'] as String?,
+
+      recurrenceType: RecurrenceType.values.firstWhere(
+        (e) => e.name == map['recurrenceType'],
+        orElse: () => RecurrenceType.none,
+      ),
+      selectedDays:
+          (map['selectedDays'] as List<dynamic>?)
+              ?.map((e) => e as int)
+              .toList() ??
+          [],
+      startDate: map['startDate'] != null
+          ? DateTime.parse(map['startDate'].toString())
+          : null,
+      lastProcessedDate: map['lastProcessedDate'] != null
+          ? DateTime.parse(map['lastProcessedDate'].toString())
+          : null,
     );
   }
 
@@ -158,6 +213,11 @@ class PlannedExpense extends Equatable {
   final EndOfMonthAction endOfMonthAction;
   final String? walletId;
 
+  final RecurrenceType recurrenceType;
+  final List<int> selectedDays;
+  final DateTime? startDate;
+  final DateTime? lastProcessedDate;
+
   @override
   List<Object?> get props => [
     id,
@@ -167,6 +227,10 @@ class PlannedExpense extends Equatable {
     sourceId,
     endOfMonthAction,
     walletId,
+    recurrenceType,
+    selectedDays,
+    startDate,
+    lastProcessedDate,
   ];
 
   PlannedExpense copyWith({
@@ -177,6 +241,10 @@ class PlannedExpense extends Equatable {
     String? sourceId,
     EndOfMonthAction? endOfMonthAction,
     String? walletId,
+    RecurrenceType? recurrenceType,
+    List<int>? selectedDays,
+    DateTime? startDate,
+    DateTime? lastProcessedDate,
   }) {
     return PlannedExpense(
       id: id ?? this.id,
@@ -186,6 +254,10 @@ class PlannedExpense extends Equatable {
       sourceId: sourceId ?? this.sourceId,
       endOfMonthAction: endOfMonthAction ?? this.endOfMonthAction,
       walletId: walletId ?? this.walletId,
+      recurrenceType: recurrenceType ?? this.recurrenceType,
+      selectedDays: selectedDays ?? this.selectedDays,
+      startDate: startDate ?? this.startDate,
+      lastProcessedDate: lastProcessedDate ?? this.lastProcessedDate,
     );
   }
 
@@ -197,6 +269,10 @@ class PlannedExpense extends Equatable {
     'sourceId': sourceId,
     'endOfMonthAction': endOfMonthAction.name,
     'walletId': walletId,
+    'recurrenceType': recurrenceType.name,
+    'selectedDays': selectedDays,
+    'startDate': startDate?.toIso8601String(),
+    'lastProcessedDate': lastProcessedDate?.toIso8601String(),
   };
 }
 
@@ -209,6 +285,11 @@ class PlannedDebt extends Equatable {
     this.executionDay = 1,
     this.executionType = PlanExecutionType.manual,
     this.sourceId,
+
+    this.recurrenceType = RecurrenceType.none,
+    this.selectedDays = const [],
+    this.startDate,
+    this.lastProcessedDate,
   });
 
   factory PlannedDebt.fromJson(Map<String, dynamic> map) {
@@ -222,14 +303,36 @@ class PlannedDebt extends Equatable {
         orElse: () => PlanExecutionType.manual,
       ),
       sourceId: map['sourceId'] as String?,
+
+      recurrenceType: RecurrenceType.values.firstWhere(
+        (e) => e.name == map['recurrenceType'],
+        orElse: () => RecurrenceType.none,
+      ),
+      selectedDays:
+          (map['selectedDays'] as List<dynamic>?)
+              ?.map((e) => e as int)
+              .toList() ??
+          [],
+      startDate: map['startDate'] != null
+          ? DateTime.parse(map['startDate'].toString())
+          : null,
+      lastProcessedDate: map['lastProcessedDate'] != null
+          ? DateTime.parse(map['lastProcessedDate'].toString())
+          : null,
     );
   }
+
   final String id;
   final String name;
   final double amount;
   final int executionDay;
   final PlanExecutionType executionType;
   final String? sourceId;
+
+  final RecurrenceType recurrenceType;
+  final List<int> selectedDays;
+  final DateTime? startDate;
+  final DateTime? lastProcessedDate;
 
   @override
   List<Object?> get props => [
@@ -239,6 +342,10 @@ class PlannedDebt extends Equatable {
     executionDay,
     executionType,
     sourceId,
+    recurrenceType,
+    selectedDays,
+    startDate,
+    lastProcessedDate,
   ];
 
   PlannedDebt copyWith({
@@ -248,6 +355,10 @@ class PlannedDebt extends Equatable {
     int? executionDay,
     PlanExecutionType? executionType,
     String? sourceId,
+    RecurrenceType? recurrenceType,
+    List<int>? selectedDays,
+    DateTime? startDate,
+    DateTime? lastProcessedDate,
   }) {
     return PlannedDebt(
       id: id ?? this.id,
@@ -256,6 +367,10 @@ class PlannedDebt extends Equatable {
       executionDay: executionDay ?? this.executionDay,
       executionType: executionType ?? this.executionType,
       sourceId: sourceId ?? this.sourceId,
+      recurrenceType: recurrenceType ?? this.recurrenceType,
+      selectedDays: selectedDays ?? this.selectedDays,
+      startDate: startDate ?? this.startDate,
+      lastProcessedDate: lastProcessedDate ?? this.lastProcessedDate,
     );
   }
 
@@ -266,6 +381,10 @@ class PlannedDebt extends Equatable {
     'executionDay': executionDay,
     'executionType': executionType.name,
     'sourceId': sourceId,
+    'recurrenceType': recurrenceType.name,
+    'selectedDays': selectedDays,
+    'startDate': startDate?.toIso8601String(),
+    'lastProcessedDate': lastProcessedDate?.toIso8601String(),
   };
 }
 
@@ -312,9 +431,11 @@ class MonthlyPlan extends Equatable {
 
   double get totalPlannedIncome =>
       incomes.fold(0, (sum, item) => sum + item.amount);
+
   double get totalBudgetedExpense => expenses
       .where((e) => e.walletId == null)
       .fold(0, (sum, item) => sum + item.budgetedAmount);
+
   double get totalPlannedDebts =>
       debts.fold(0, (sum, item) => sum + item.amount);
 

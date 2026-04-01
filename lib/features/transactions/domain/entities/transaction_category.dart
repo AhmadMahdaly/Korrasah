@@ -1,7 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:opration/features/transactions/domain/entities/transaction.dart';
 
-enum RecurrenceType { none, weekly, monthly }
+enum RecurrenceType {
+  none,
+  daily,
+  weekdays,
+  weekends,
+  weekly,
+  biWeekly,
+  everyFourWeeks,
+  monthly,
+  endOfMonth,
+  everyTwoMonths,
+  everyThreeMonths,
+  everyFourMonths,
+  everySixMonths,
+  yearly,
+}
+
+class RecurringPlan {
+  RecurringPlan({
+    required this.id,
+    required this.title,
+    required this.amount,
+    required this.type,
+    required this.startDate,
+    required this.targetWalletId,
+    this.selectedDays = const [],
+    this.lastProcessedDate,
+  });
+  final String id;
+  final String title;
+  final double amount;
+  final RecurrenceType type;
+  final List<int> selectedDays;
+  final DateTime startDate;
+  final DateTime? lastProcessedDate;
+  final String targetWalletId;
+
+  RecurringPlan copyWithLastProcessed(DateTime newDate) {
+    return RecurringPlan(
+      id: id,
+      title: title,
+      amount: amount,
+      type: type,
+      selectedDays: selectedDays,
+      startDate: startDate,
+      lastProcessedDate: newDate,
+      targetWalletId: targetWalletId,
+    );
+  }
+}
 
 class TransactionCategory {
   TransactionCategory({
