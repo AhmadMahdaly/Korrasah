@@ -79,7 +79,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                             ),
                             child: Center(
                               child: Text(
-                                'فئات المحافظ',
+                                'فئات الدخل',
                                 style: TextStyle(
                                   color: !_isExpenseTab
                                       ? Colors.white
@@ -106,7 +106,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                             ),
                             child: Center(
                               child: Text(
-                                'فئات المخصصات',
+                                'فئات المصروفات',
                                 style: TextStyle(
                                   color: _isExpenseTab
                                       ? Colors.white
@@ -290,33 +290,98 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
     BuildContext context,
     TransactionCategory parentCategory,
   ) {
-    // 1. مكتبة إيموجي ضخمة مقسمة (أكثر من 60 أيقونة)
     final icons = <String>[
-      // مواصلات
-      '🚇', '🚆', '🚉', '🚗', '🚕', '🚌', '🚎', '✈️', '🚢', '🚲', '🛵', '⛽',
-      // طعام ومشروبات
-      '🍔', '🍕', '🍗', '🍜', '🍩', '☕', '🍵', '🥤', '🍎', '🍉',
-      // تسوق ومنزل
-      '🛒', '🛍️', '🎁', '📦', '👕', '👗', '👟', '🏠', '🛋️', '🛏️', '🧴',
-      // فواتير وأخرى
-      '💡', '🚰', '📱', '💻', '📺', '🔌', '🏥', '💊', '💉', '💈', '✂️',
-      // ترفيه
-      '🎮', '🎲', '🎬', '🎧', '🎸', '🎫', '🎪', '⚽', '🏀', '🏊‍♂️',
-      // مال وأعمال ومفرقات
-      '💰', '💵', '💳', '🏦', '💼', '📈', '📉', '📚', '✏️', '🛠️', '🎯',
+      '🚇',
+      '🚆',
+      '🚉',
+      '🚗',
+      '🚕',
+      '🚌',
+      '🚎',
+      '✈️',
+      '🚢',
+      '🚲',
+      '🛵',
+      '⛽',
+
+      '🍔',
+      '🍕',
+      '🍗',
+      '🍜',
+      '🍩',
+      '☕',
+      '🍵',
+      '🥤',
+      '🍎',
+      '🍉',
+
+      '🛒',
+      '🛍️',
+      '🎁',
+      '📦',
+      '👕',
+      '👗',
+      '👟',
+      '🏠',
+      '🛋️',
+      '🛏️',
+      '🧴',
+
+      '💡',
+      '🚰',
+      '📱',
+      '💻',
+      '📺',
+      '🔌',
+      '🏥',
+      '💊',
+      '💉',
+      '💈',
+      '✂️',
+
+      '🎮',
+      '🎲',
+      '🎬',
+      '🎧',
+      '🎸',
+      '🎫',
+      '🎪',
+      '⚽',
+      '🏀',
+      '🏊‍♂️',
+
+      '💰',
+      '💵',
+      '💳',
+      '🏦',
+      '💼',
+      '📈',
+      '📉',
+      '📚',
+      '✏️',
+      '🛠️',
+      '🎯',
     ];
 
-    // 2. لوحة الألوان للتحليل والرسوم البيانية
     final availableColors = <Color>[
-      const Color(0xFF00A86B), // أخضر أساسي
-      Colors.blue, Colors.red, Colors.orange, Colors.purple,
-      Colors.teal, Colors.pink, Colors.amber, Colors.cyan,
-      Colors.indigo, Colors.brown, Colors.blueGrey, Colors.deepPurple,
+      const Color(0xFF00A86B),
+      Colors.blue,
+      Colors.red,
+      Colors.orange,
+      Colors.purple,
+      Colors.teal,
+      Colors.pink,
+      Colors.amber,
+      Colors.cyan,
+      Colors.indigo,
+      Colors.brown,
+      Colors.blueGrey,
+      Colors.deepPurple,
     ];
 
     final nameCtrl = TextEditingController();
-    var selectedIcon = '🚇'; // أيقونة المترو كافتراضي
-    var selectedColor = parentCategory.color; // يأخذ لون الأب كافتراضي
+    var selectedIcon = '🚇';
+    var selectedColor = parentCategory.color;
 
     showModalBottomSheet<void>(
       context: context,
@@ -370,7 +435,6 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                     ),
                     24.verticalSpace,
 
-                    // --- حقل الاسم ---
                     Text(
                       'اسم الفئة',
                       style: TextStyle(
@@ -397,7 +461,6 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                     ),
                     20.verticalSpace,
 
-                    // --- اختيار اللون ---
                     Text(
                       'اللون (للتحليلات والإحصائيات)',
                       style: TextStyle(
@@ -430,7 +493,6 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                     ),
                     20.verticalSpace,
 
-                    // --- اختيار الأيقونة (مكتبة الشات) ---
                     Text(
                       'الأيقونة',
                       style: TextStyle(
@@ -440,8 +502,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                     ),
                     12.verticalSpace,
                     Container(
-                      height: 200
-                          .h, // تحديد ارتفاع ثابت عشان القائمة تكون قابلة للتمرير (Scrollable)
+                      height: 200.h,
                       padding: EdgeInsets.all(12.r),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade50,
@@ -451,7 +512,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                       child: GridView.builder(
                         shrinkWrap: true,
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 6, // عدد الأيقونات في كل صف
+                          crossAxisCount: 6,
                           crossAxisSpacing: 8.w,
                           mainAxisSpacing: 8.h,
                         ),
@@ -463,7 +524,6 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                             onTap: () => setState(() => selectedIcon = icon),
                             child: Container(
                               decoration: BoxDecoration(
-                                // عرض لون الخلفية المختار لو الأيقونة دي هي المحددة
                                 color: isSelected
                                     ? selectedColor.withAlpha(40)
                                     : Colors.white,
@@ -488,7 +548,6 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                     ),
                     32.verticalSpace,
 
-                    // --- زر الحفظ ---
                     CustomPrimaryButton(
                       onPressed: () {
                         if (nameCtrl.text.isNotEmpty) {
@@ -499,7 +558,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                             name: fullName,
                             type: parentCategory.type,
                             parentId: parentCategory.id,
-                            // هنا بنحفظ اللون الجديد اللي المستخدم اختاره
+
                             colorValue: selectedColor.value,
                           );
 

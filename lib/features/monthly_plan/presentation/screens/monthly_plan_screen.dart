@@ -77,12 +77,13 @@ class MonthlyPlanScreen extends StatelessWidget {
                           >(
                             builder: (context, txState) {
                               return _buildPopulatedState(
-                                context,
-                                plan,
-                                linkedWallets,
-                                txState.allTransactions,
-                                currentMonth,
-                                txState.allCategories,
+                                context: context,
+                                plan: plan,
+                                linkedWallets: linkedWallets,
+                                allTxs: txState.allTransactions,
+                                currentMonth: currentMonth,
+                                allCategories: txState.allCategories,
+                                planState: planState,
                               );
                             },
                           );
@@ -123,7 +124,6 @@ class MonthlyPlanScreen extends StatelessWidget {
               context.read<MonthlyPlanCubit>().loadPlanForMonth(prevMonth);
             },
           ),
-
           Text(
             '${_getMonthArabicName(currentMonth.month)} ${currentMonth.year}',
             style: TextStyle(
@@ -132,11 +132,9 @@ class MonthlyPlanScreen extends StatelessWidget {
               color: AppColors.primaryColor,
             ),
           ),
-
           IconButton(
             icon: Icon(
               Icons.arrow_forward_ios_rounded,
-
               size: 18.r,
               color: AppColors.primaryTextColor,
             ),
@@ -215,34 +213,50 @@ class MonthlyPlanScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPopulatedState(
-    BuildContext context,
-    MonthlyPlan plan,
-    List<Wallet> linkedWallets,
-    List<Transaction> allTxs,
-    DateTime currentMonth,
-    List<TransactionCategory> allCategories,
-  ) {
-    final startDate = DateTime(currentMonth.year, currentMonth.month, 1);
-    final endDate = DateTime(currentMonth.year, currentMonth.month + 1, 0);
+  Widget _buildPopulatedState({
+    required BuildContext context,
+    required MonthlyPlan plan,
+    required List<Wallet> linkedWallets,
+    required List<Transaction> allTxs,
+    required DateTime currentMonth,
+    required List<TransactionCategory> allCategories,
+    required MonthlyPlanState planState,
+  }) {
+    final startDate = DateTime(
+      currentMonth.year,
+      currentMonth.month,
+      currentMonth.day,
+    );
+    final endDate = startDate.add(const Duration(days: 30));
     final dateRangeStr =
         'من ${startDate.day} ${_getMonthArabicName(startDate.month)} إلى ${endDate.day} ${_getMonthArabicName(endDate.month)}';
 
     final totalPlannedIncome = plan.totalPlannedIncome;
-
-    final actualTotalExpenses = allTxs
-        .where(
-          (t) =>
-              t.type == TransactionType.expense &&
-              t.date.year == currentMonth.year &&
-              t.date.month == currentMonth.month,
-        )
-        .fold(0.0, (sum, t) => sum + t.amount);
-
+    final actualTotalExpenses = planState.summary?.totalExpense ?? 0.0;
     final remainingFromIncome = totalPlannedIncome - actualTotalExpenses;
+
     final overallProgress = totalPlannedIncome > 0
         ? (actualTotalExpenses / totalPlannedIncome).clamp(0.0, 1.0)
         : 0.0;
+
+    final today = DateTime.now();
+    final isCurrentMonthView =
+        currentMonth.year == today.year && currentMonth.month == today.month;
+
+    final availableIncomes = <PlannedIncome>[];
+    final pendingIncomes = <PlannedIncome>[];
+
+    for (final income in plan.incomes) {
+      if (!isCurrentMonthView || !income.isFixed) {
+        availableIncomes.add(income);
+      } else {
+        if (today.day >= income.executionDay) {
+          availableIncomes.add(income);
+        } else {
+          pendingIncomes.add(income);
+        }
+      }
+    }
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(16.r),
@@ -304,7 +318,7 @@ class MonthlyPlanScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  'الباقي من الدخل',
+                  'الباقي للتخصيص من الإجمالي',
                   style: TextStyle(color: Colors.white70, fontSize: 14.sp),
                 ),
                 4.verticalSpace,
@@ -395,6 +409,32 @@ class MonthlyPlanScreen extends StatelessWidget {
           ),
           24.verticalSpace,
 
+          if (availableIncomes.isNotEmpty) ...[
+            Text(
+              'الدخل المتاح حالياً',
+              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+            ),
+            12.verticalSpace,
+            ...availableIncomes.map(
+              (i) => _buildIncomeTile(i, isPending: false),
+            ),
+            24.verticalSpace,
+          ],
+
+          if (pendingIncomes.isNotEmpty) ...[
+            Text(
+              'الدخل المنتظر (لم يحن موعده)',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            12.verticalSpace,
+            ...pendingIncomes.map((i) => _buildIncomeTile(i, isPending: true)),
+            24.verticalSpace,
+          ],
+
           if (plan.expenses.isNotEmpty) ...[
             Text(
               'المخصصات',
@@ -406,7 +446,8 @@ class MonthlyPlanScreen extends StatelessWidget {
                 context,
                 expense,
                 allTxs,
-                currentMonth,
+                startDate,
+                endDate,
                 allCategories,
               ),
             ),
@@ -437,11 +478,92 @@ class MonthlyPlanScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildIncomeTile(PlannedIncome income, {required bool isPending}) {
+    final isDefault = income.id == 'default_salary';
+
+    final bgColor = isPending ? Colors.grey.shade100 : Colors.green.shade50;
+    final borderColor = isPending
+        ? Colors.grey.shade300
+        : Colors.green.shade100;
+    final iconColor = isPending ? Colors.grey.shade500 : Colors.green.shade700;
+    final textColor = isPending ? Colors.grey.shade600 : Colors.black87;
+    final amountColor = isPending
+        ? Colors.grey.shade600
+        : Colors.green.shade700;
+
+    final recurrenceStr = _getRecurrenceText(
+      income.recurrenceType,
+      income.selectedDays,
+      income.executionDay,
+    );
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.r),
+        side: BorderSide(color: borderColor),
+      ),
+      color: bgColor,
+      margin: EdgeInsets.only(bottom: 12.h),
+      child: ListTile(
+        title: Row(
+          children: [
+            Text(
+              income.name,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ),
+            ),
+            if (isDefault)
+              Text(
+                ' (افتراضي)',
+                style: TextStyle(
+                  color: Colors.grey.shade500,
+                  fontSize: 12.sp,
+                ),
+              ),
+          ],
+        ),
+        subtitle: Text(
+          isPending
+              ? 'استحقاق: $recurrenceStr'
+              : (income.isFixed
+                    ? 'متاح / $recurrenceStr'
+                    : 'غير محدد اليوم - متغير'),
+          style: TextStyle(
+            color: isPending ? Colors.red.shade300 : Colors.grey.shade700,
+            fontSize: 12.sp,
+            fontWeight: isPending ? FontWeight.w500 : FontWeight.normal,
+          ),
+        ),
+        leading: Text(
+          '+${income.amount.toStringAsFixed(2)}',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16.sp,
+            color: amountColor,
+          ),
+        ),
+        trailing: CircleAvatar(
+          backgroundColor: isPending
+              ? Colors.grey.shade200
+              : Colors.green.shade100,
+          child: Icon(
+            isPending ? Icons.hourglass_empty_rounded : Icons.download_rounded,
+            color: iconColor,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildAllocationProgressTile(
     BuildContext context,
     PlannedExpense expense,
     List<Transaction> allTxs,
-    DateTime currentMonth,
+    DateTime startDate,
+    DateTime endDate,
     List<TransactionCategory> allCategories,
   ) {
     final budgeted = expense.budgetedAmount;
@@ -455,10 +577,10 @@ class MonthlyPlanScreen extends StatelessWidget {
     final actualSpent = allTxs
         .where(
           (t) =>
-              relevantIds.contains(t.categoryId) &&
+              relevantIds.contains(t.allocationId) &&
               t.type == TransactionType.expense &&
-              t.date.year == currentMonth.year &&
-              t.date.month == currentMonth.month,
+              t.date.isAfter(startDate.subtract(const Duration(seconds: 1))) &&
+              t.date.isBefore(endDate.add(const Duration(days: 1))),
         )
         .fold(0.0, (sum, t) => sum + t.amount);
 
@@ -480,7 +602,8 @@ class MonthlyPlanScreen extends StatelessWidget {
           context,
           expense.name,
           relevantIds,
-          currentMonth,
+          startDate,
+          endDate,
         ),
         borderRadius: BorderRadius.circular(12.r),
         child: Padding(
@@ -561,6 +684,12 @@ class MonthlyPlanScreen extends StatelessWidget {
   }
 
   Widget _buildWalletTile(Wallet wallet) {
+    final recurrenceStr = _getRecurrenceText(
+      wallet.recurrenceType,
+      wallet.selectedDays,
+      wallet.executionDay ?? 1,
+    );
+
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -574,7 +703,7 @@ class MonthlyPlanScreen extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          '${wallet.monthlyAmount?.toStringAsFixed(2)} ج.م شهرياً',
+          '${wallet.monthlyAmount?.toStringAsFixed(2)} ج.م • $recurrenceStr',
         ),
         leading: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -601,6 +730,12 @@ class MonthlyPlanScreen extends StatelessWidget {
   }
 
   Widget _buildDebtTile(PlannedDebt debt) {
+    final recurrenceStr = _getRecurrenceText(
+      debt.recurrenceType,
+      debt.selectedDays,
+      debt.executionDay,
+    );
+
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -614,7 +749,7 @@ class MonthlyPlanScreen extends StatelessWidget {
           debt.name,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        subtitle: Text('يوم ${debt.executionDay} من كل شهر'),
+        subtitle: Text(recurrenceStr),
         leading: Text(
           '-${debt.amount.toStringAsFixed(2)}',
           style: TextStyle(
@@ -634,7 +769,8 @@ class MonthlyPlanScreen extends StatelessWidget {
     BuildContext context,
     String categoryName,
     List<String> relevantIds,
-    DateTime currentMonth,
+    DateTime startDate,
+    DateTime endDate,
   ) {
     showModalBottomSheet<void>(
       context: context,
@@ -647,10 +783,12 @@ class MonthlyPlanScreen extends StatelessWidget {
         return BlocBuilder<TransactionCubit, TransactionState>(
           builder: (context, txState) {
             final transactions = txState.allTransactions.where((t) {
-              return relevantIds.contains(t.categoryId) &&
+              return relevantIds.contains(t.allocationId) &&
                   t.type == TransactionType.expense &&
-                  t.date.year == currentMonth.year &&
-                  t.date.month == currentMonth.month;
+                  t.date.isAfter(
+                    startDate.subtract(const Duration(seconds: 1)),
+                  ) &&
+                  t.date.isBefore(endDate.add(const Duration(days: 1)));
             }).toList()..sort((a, b) => b.date.compareTo(a.date));
 
             return Container(
@@ -680,7 +818,7 @@ class MonthlyPlanScreen extends StatelessWidget {
                     child: transactions.isEmpty
                         ? Center(
                             child: Text(
-                              'لا توجد عمليات مسجلة في $categoryName خلال ${_getMonthArabicName(currentMonth.month)}',
+                              'لا توجد عمليات مسجلة في $categoryName خلال هذه الفترة',
                               style: TextStyle(
                                 color: Colors.grey,
                                 fontSize: 14.sp,
@@ -755,6 +893,70 @@ class MonthlyPlanScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  String _getRecurrenceText(
+    RecurrenceType type,
+    List<int> days,
+    int defaultDay,
+  ) {
+    switch (type) {
+      case RecurrenceType.none:
+        return 'مرة واحدة (يوم $defaultDay)';
+      case RecurrenceType.daily:
+        return 'كل يوم';
+      case RecurrenceType.weekdays:
+        return 'أيام العمل';
+      case RecurrenceType.weekends:
+        return 'الويك إند';
+      case RecurrenceType.weekly:
+        final d = days.map(_getWeekDayName).join('، ');
+        return 'أسبوعياً${d.isNotEmpty ? ' ($d)' : ''}';
+      case RecurrenceType.biWeekly:
+        final d = days.map(_getWeekDayName).join('، ');
+        return 'كل أسبوعين${d.isNotEmpty ? ' ($d)' : ''}';
+      case RecurrenceType.everyFourWeeks:
+        final d = days.map(_getWeekDayName).join('، ');
+        return 'كل 4 أسابيع${d.isNotEmpty ? ' ($d)' : ''}';
+      case RecurrenceType.monthly:
+        return 'شهرياً (يوم ${days.isNotEmpty ? days.first : defaultDay})';
+      case RecurrenceType.everyTwoMonths:
+        return 'كل شهرين (يوم ${days.isNotEmpty ? days.first : defaultDay})';
+      case RecurrenceType.everyThreeMonths:
+        return 'كل 3 أشهر (يوم ${days.isNotEmpty ? days.first : defaultDay})';
+      case RecurrenceType.everyFourMonths:
+        return 'كل 4 أشهر (يوم ${days.isNotEmpty ? days.first : defaultDay})';
+      case RecurrenceType.everySixMonths:
+        return 'كل 6 أشهر (يوم ${days.isNotEmpty ? days.first : defaultDay})';
+      case RecurrenceType.endOfMonth:
+        return 'آخر الشهر';
+      case RecurrenceType.yearly:
+        if (days.length == 2) {
+          return 'سنوياً (يوم ${days[1]} / ${days[0]})';
+        }
+        return 'سنوياً';
+    }
+  }
+
+  String _getWeekDayName(int day) {
+    switch (day) {
+      case 1:
+        return 'الإثنين';
+      case 2:
+        return 'الثلاثاء';
+      case 3:
+        return 'الأربعاء';
+      case 4:
+        return 'الخميس';
+      case 5:
+        return 'الجمعة';
+      case 6:
+        return 'السبت';
+      case 7:
+        return 'الأحد';
+      default:
+        return '';
+    }
   }
 
   String _getMonthArabicName(int month) {

@@ -15,13 +15,12 @@ class SettingsScreen extends StatelessWidget {
       appBar: PageHeader(
         isLeading: false,
         heightBar: 80.h,
-        title: 'القائمة', // أو الإعدادات حسب رغبتك
+        title: 'القائمة',
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16.r),
         child: Column(
           children: [
-            // 1. إعداد الميزانية
             _buildMenuItem(
               title: 'إعداد الميزانية',
               subtitle: 'إدارة الدخل والمخصصات',
@@ -35,7 +34,6 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
 
-            // 2. إعداد الفئات
             _buildMenuItem(
               title: 'إعداد الفئات',
               subtitle: 'تخصيص فئات المصروفات',
@@ -48,8 +46,19 @@ class SettingsScreen extends StatelessWidget {
                 context.push(AppRoutes.manageCategoriesScreen);
               },
             ),
+            _buildMenuItem(
+              title: 'المعاملات التلقائية',
+              subtitle: 'إدارة المعاملات التلقائية',
+              icon: Icons.notifications_rounded,
+              gradientColors: [
+                const Color(0xFFFFB300),
+                const Color(0xFFF57C00),
+              ],
+              onTap: () {
+                context.push(AppRoutes.recurringTransactionsScreen);
+              },
+            ),
 
-            // 3. الأهداف
             _buildMenuItem(
               title: 'الأهداف',
               subtitle: 'تتبع أهدافك المالية',
@@ -63,7 +72,6 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
 
-            // 4. السجلات
             _buildMenuItem(
               title: 'السجلات',
               subtitle: 'عرض جميع التغييرات',
@@ -72,12 +80,9 @@ class SettingsScreen extends StatelessWidget {
                 const Color(0xFFFF7A00),
                 const Color(0xFFFF3D00),
               ],
-              onTap: () {
-                // context.push(AppRoutes.transferHistoryScreen);
-              },
+              onTap: () {},
             ),
 
-            // 5. الإشعارات
             _buildMenuItem(
               title: 'الإشعارات',
               subtitle: 'إدارة التنبيهات',
@@ -90,7 +95,6 @@ class SettingsScreen extends StatelessWidget {
                 context.push(AppRoutes.notificationsScreen);
               },
             ),
-
             // 6. إعدادات التطبيق
             // _buildMenuItem(
             //   title: 'إعدادات التطبيق',
@@ -106,7 +110,6 @@ class SettingsScreen extends StatelessWidget {
             // ),
             24.verticalSpace,
 
-            // الفوتر (صُنع بحب)
             Container(
               width: double.infinity,
               padding: EdgeInsets.symmetric(vertical: 24.h),
@@ -161,7 +164,6 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  // دالة مساعدة لبناء الكروت وتوحيد التصميم
   Widget _buildMenuItem({
     required String title,
     required String subtitle,

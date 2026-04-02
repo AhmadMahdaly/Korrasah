@@ -5,17 +5,19 @@ import 'package:intl/intl.dart';
 import 'package:opration/features/transactions/domain/entities/transaction.dart';
 import 'package:opration/features/transactions/domain/entities/transaction_category.dart';
 import 'package:opration/features/transactions/domain/usecases/add_category.dart';
-import 'package:opration/features/transactions/domain/usecases/add_transaction.dart';
 import 'package:opration/features/transactions/domain/usecases/delete_category.dart';
 import 'package:opration/features/transactions/domain/usecases/delete_transaction.dart';
 import 'package:opration/features/transactions/domain/usecases/get_categories.dart';
 import 'package:opration/features/transactions/domain/usecases/get_filter_settings.dart';
 import 'package:opration/features/transactions/domain/usecases/get_transactions.dart';
+// استدعاء الـ UseCases الجديدة الخاصة بالمعاملات المركزية
+import 'package:opration/features/transactions/domain/usecases/process_transaction_usecase.dart';
 import 'package:opration/features/transactions/domain/usecases/save_filter_settings.dart';
 import 'package:opration/features/transactions/domain/usecases/update_category.dart';
 import 'package:opration/features/transactions/domain/usecases/update_transaction.dart';
 import 'package:opration/features/wallets/domain/entities/wallet.dart';
-import 'package:opration/features/wallets/presentation/cubit/wallet_cubit.dart';
+// استدعاء الـ UseCase الخاص بقراءة المحافظ بدلاً من الـ Cubit
+import 'package:opration/features/wallets/domain/usecases/get_wallets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -26,19 +28,20 @@ class TransactionCubit extends Cubit<TransactionState> {
     required this.uuid,
     required this.sharedPreferences,
     required this.getTransactionsUseCase,
-    required this.addTransactionUseCase,
-    required this.updateTransactionUseCase,
-    required this.deleteTransactionUseCase,
+    required this.processTransactionUseCase, // الاعتماد الجديد
+    required this.updateTransactionUseCase, // الاعتماد الجديد
+    required this.deleteTransactionUseCase, // الاعتماد الجديد
     required this.getCategoriesUseCase,
     required this.addCategoryUseCase,
     required this.updateCategoryUseCase,
     required this.deleteCategoryUseCase,
     required this.getFilterSettingsUseCase,
     required this.saveFilterSettingsUseCase,
-    required this.walletCubit,
+    required this.getWalletsUseCase, // جلب المحافظ للقراءة فقط بدلاً من WalletCubit
   }) : super(const TransactionState());
+
   final GetTransactionsUseCase getTransactionsUseCase;
-  final AddTransactionUseCase addTransactionUseCase;
+  final ProcessTransactionUseCase processTransactionUseCase;
   final UpdateTransactionUseCase updateTransactionUseCase;
   final DeleteTransactionUseCase deleteTransactionUseCase;
   final GetCategoriesUseCase getCategoriesUseCase;
@@ -47,9 +50,10 @@ class TransactionCubit extends Cubit<TransactionState> {
   final DeleteCategoryUseCase deleteCategoryUseCase;
   final GetFilterSettingsUseCase getFilterSettingsUseCase;
   final SaveFilterSettingsUseCase saveFilterSettingsUseCase;
-  final WalletCubit walletCubit;
+  final GetWalletsUseCase getWalletsUseCase;
   final SharedPreferences sharedPreferences;
   final Uuid uuid;
+
   Future<void> loadInitialData() async {
     emit(state.copyWith(isLoading: true));
     try {
@@ -97,17 +101,12 @@ class TransactionCubit extends Cubit<TransactionState> {
 
   Future<void> processMonthlySavingsTransfer() async {
     final now = DateTime.now();
-    // مفتاح فريد يعبر عن الشهر والسنة الحاليين (مثال: 2026_3)
     final currentMonthKey = '${now.year}_${now.month}';
-
-    // جلب آخر شهر تم فيه الترحيل
     final lastTransferMonth = sharedPreferences.getString(
       'last_savings_transfer_month',
     );
 
-    // لو الشهر اتغير عن آخر مرة فتحنا فيها التطبيق
     if (lastTransferMonth != currentMonthKey) {
-      // لو دي أول مرة التطبيق يشتغل (مفيش قيمة سابقة)، هنسجل الشهر الحالي ومفيش داعي نحول حاجة من الهوا
       if (lastTransferMonth == null) {
         await sharedPreferences.setString(
           'last_savings_transfer_month',
@@ -116,34 +115,48 @@ class TransactionCubit extends Cubit<TransactionState> {
         return;
       }
 
-      final walletState = walletCubit.state;
-      if (walletState is WalletLoaded) {
-        try {
-          // نبحث عن محفظة الميزانية ومحفظة التوفير بناءً على الـ type
-          final mainWallet = walletState.wallets.firstWhere(
-            (w) => w.type == WalletType.mainBudget,
-          );
-          final savingsWallet = walletState.wallets.firstWhere(
-            (w) => w.type == WalletType.savings,
-          );
+      try {
+        final wallets = await getWalletsUseCase();
 
-          // لو الميزانية فيها فلوس، انقلها بالكامل للتوفير
-          if (mainWallet.balance > 0) {
-            final amountToTransfer = mainWallet.balance;
+        // جلب محفظة التوفير فقط
+        final savingsWallet = wallets.firstWhere(
+          (w) => w.type == WalletType.savings,
+        );
 
-            // دالة transferBalance هتخصم من الميزانية، وتزود التوفير، وتسجل العملية في سجل التحويلات
-            await walletCubit.transferBalance(
-              mainWallet.id,
-              savingsWallet.id,
-              amountToTransfer,
+        var hasTransfers = false;
+
+        // المرور على جميع المحافظ الفعلية (المستقلة) لترحيل الفائض منها
+        final independentWallets = wallets.where(
+          (w) => w.type == WalletType.sideIndependent,
+        );
+
+        for (final wallet in independentWallets) {
+          if (wallet.balance > 0) {
+            // يتم إنشاء معاملة "تحويل" من كل محفظة فعلية إلى التوفير
+            final transferTx = Transaction(
+              id: uuid.v4(),
+              type: TransactionType.transfer,
+              amount: wallet.balance,
+              date: now,
+              fromWalletId: wallet.id,
+              toWalletId: savingsWallet.id,
+              note: 'ترحيل الفائض التلقائي من ${wallet.name}',
             );
+
+            await processTransactionUseCase.execute(transferTx);
+            hasTransfers = true;
           }
-        } catch (e) {
-          // في حال عدم العثور على المحافظ، يتم التجاهل لتجنب انهيار التطبيق
         }
+
+        // تحديث السجل المحلي فقط إذا تمت عمليات تحويل بالفعل
+        if (hasTransfers) {
+          final updatedTransactions = await getTransactionsUseCase();
+          emit(state.copyWith(allTransactions: updatedTransactions));
+        }
+      } catch (e) {
+        // يتم التجاهل في حال عدم توفر المحافظ أو حدوث خطأ
       }
 
-      // تحديث الكاش بالشهر الجديد عشان العملية دي متتكررش تاني نفس الشهر
       await sharedPreferences.setString(
         'last_savings_transfer_month',
         currentMonthKey,
@@ -168,14 +181,10 @@ class TransactionCubit extends Cubit<TransactionState> {
 
       if (category.recurrenceType == RecurrenceType.monthly &&
           category.dayOfMonth != null) {
-        if (now.day >= category.dayOfMonth!) {
-          isDue = true;
-        }
+        if (now.day >= category.dayOfMonth!) isDue = true;
       } else if (category.recurrenceType == RecurrenceType.weekly &&
           category.daysOfWeek != null) {
-        if (category.daysOfWeek!.contains(now.weekday)) {
-          isDue = true;
-        }
+        if (category.daysOfWeek!.contains(now.weekday)) isDue = true;
       }
 
       if (isDue) {
@@ -205,14 +214,16 @@ class TransactionCubit extends Cubit<TransactionState> {
     var finalWalletId = category.targetWalletId ?? '';
 
     if (finalWalletId.isEmpty) {
-      final walletState = walletCubit.state;
-      if (walletState is WalletLoaded && walletState.wallets.isNotEmpty) {
-        final mainWallet = walletState.wallets.firstWhere(
-          (w) => w.isMain,
-          orElse: () => walletState.wallets.first,
-        );
-        finalWalletId = mainWallet.id;
-      } else {
+      try {
+        final wallets = await getWalletsUseCase();
+        // نبحث عن محفظة التوفير كخيار افتراضي، وإذا لم يجدها يأخذ أول محفظة في القائمة
+        finalWalletId = wallets
+            .firstWhere(
+              (w) => w.type == WalletType.savings,
+              orElse: () => wallets.first,
+            )
+            .id;
+      } catch (_) {
         return;
       }
     }
@@ -221,22 +232,17 @@ class TransactionCubit extends Cubit<TransactionState> {
     if (amount <= 0) return;
 
     final newTx = Transaction(
-      id: const Uuid().v4(),
+      id: uuid.v4(),
       amount: amount,
-      categoryId: category.id,
+      allocationId: category.id,
       date: DateTime.now(),
       type: category.type,
       walletId: finalWalletId,
       note: 'عملية تسجيل تلقائي',
     );
 
-    await addTransactionUseCase(newTx);
-
-    final amountWithSign = category.type == TransactionType.income
-        ? amount
-        : -amount;
-    await walletCubit.updateWalletBalance(finalWalletId, amountWithSign);
-
+    // سطر واحد فقط يكفي لإدارة التحديث على كافة الـ Layers!
+    await processTransactionUseCase.execute(newTx);
     await _markAsExecuted(category, DateTime.now());
 
     final transactions = await getTransactionsUseCase();
@@ -245,9 +251,9 @@ class TransactionCubit extends Cubit<TransactionState> {
 
   Future<void> executeScheduledTransaction(TransactionCategory category) async {
     final transaction = Transaction(
-      id: const Uuid().v4(),
+      id: uuid.v4(),
       amount: category.fixedAmount ?? 0,
-      categoryId: category.id,
+      allocationId: category.id,
       date: DateTime.now(),
       type: category.type,
       walletId: 'default_wallet',
@@ -295,29 +301,34 @@ class TransactionCubit extends Cubit<TransactionState> {
     var finalWalletId = category.targetWalletId ?? '';
 
     if (finalWalletId.isEmpty) {
-      final walletState = walletCubit.state;
-      if (walletState is WalletLoaded) {
-        finalWalletId = walletState.wallets.firstWhere((w) => w.isMain).id;
+      try {
+        final wallets = await getWalletsUseCase();
+        // نبحث عن محفظة التوفير كخيار افتراضي، وإذا لم يجدها يأخذ أول محفظة في القائمة
+        finalWalletId = wallets
+            .firstWhere(
+              (w) => w.type == WalletType.savings,
+              orElse: () => wallets.first,
+            )
+            .id;
+      } catch (_) {
+        return;
       }
     }
 
     final newTx = Transaction(
-      id: const Uuid().v4(),
+      id: uuid.v4(),
       amount: category.fixedAmount ?? 0,
-      categoryId: category.id,
+      allocationId: category.id,
       date: DateTime.now(),
       type: category.type,
       walletId: finalWalletId,
       note: 'تلقائي: ${category.name}',
     );
 
-    await addTransaction(newTx);
+    await processTransactionUseCase.execute(newTx);
 
-    final amountWithSign = category.type == TransactionType.income
-        ? category.fixedAmount!
-        : -category.fixedAmount!;
-
-    await walletCubit.updateWalletBalance(finalWalletId, amountWithSign);
+    final transactions = await getTransactionsUseCase();
+    emit(state.copyWith(allTransactions: transactions));
   }
 
   Future<void> setSingleDayFilter(DateTime date) async {
@@ -346,28 +357,48 @@ class TransactionCubit extends Cubit<TransactionState> {
     switch (filter) {
       case PredefinedFilter.today:
         final start = DateTime(now.year, now.month, now.day);
-        return DateTimeRange(start: start, end: start);
+        // التعديل: نهاية اليوم تكون الساعة 11:59:59 مساءً
+        final end = DateTime(now.year, now.month, now.day, 23, 59, 59);
+        return DateTimeRange(start: start, end: end);
+
       case PredefinedFilter.week:
         final daysToSubtract = (now.weekday == DateTime.saturday)
             ? 0
             : (now.weekday + 1) % 7;
         final start = DateTime(now.year, now.month, now.day - daysToSubtract);
-        return DateTimeRange(start: start, end: now);
+        // التعديل: إعطاء مساحة حتى نهاية اليوم الحالي
+        final end = DateTime(now.year, now.month, now.day, 23, 59, 59);
+        return DateTimeRange(start: start, end: end);
+
       case PredefinedFilter.month:
-        return DateTimeRange(start: DateTime(now.year, now.month, 1), end: now);
+        final start = DateTime(now.year, now.month, 1);
+        // التعديل: اليوم 0 يعطينا آخر يوم في الشهر السابق، لذلك نستخدم month + 1 مع اليوم 0
+        final end = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+        return DateTimeRange(start: start, end: end);
+
       case PredefinedFilter.year:
-        return DateTimeRange(start: DateTime(now.year, 1, 1), end: now);
+        final start = DateTime(now.year, 1, 1);
+        // التعديل: حتى آخر لحظة في السنة
+        final end = DateTime(now.year, 12, 31, 23, 59, 59);
+        return DateTimeRange(start: start, end: end);
+
       case PredefinedFilter.singleDay:
+        final start = state.filterStartDate ?? now;
+        final end = DateTime(start.year, start.month, start.day, 23, 59, 59);
+        return DateTimeRange(start: start, end: end);
+
+      case PredefinedFilter.since:
         return DateTimeRange(
           start: state.filterStartDate ?? now,
-          end: state.filterEndDate ?? now,
+          end: DateTime(now.year, now.month, now.day, 23, 59, 59),
         );
-      case PredefinedFilter.since:
-        return DateTimeRange(start: state.filterStartDate ?? now, end: now);
+
       case PredefinedFilter.custom:
         return DateTimeRange(
           start: state.filterStartDate ?? now,
-          end: state.filterEndDate ?? now,
+          end:
+              state.filterEndDate ??
+              DateTime(now.year, now.month, now.day, 23, 59, 59),
         );
     }
   }
@@ -393,63 +424,31 @@ class TransactionCubit extends Cubit<TransactionState> {
     }
   }
 
+  // =====================================
+  // العمليات المركزية للمعاملات
+  // =====================================
+
   Future<void> addTransaction(Transaction transaction) async {
-    await _performDatabaseOperation(() => addTransactionUseCase(transaction));
+    await _performDatabaseOperation(
+      () => processTransactionUseCase.execute(transaction),
+    );
   }
 
   Future<void> updateTransaction(Transaction updatedTransaction) async {
-    emit(state.copyWith(isLoading: true));
-    try {
-      final originalTransaction = state.allTransactions.firstWhere(
-        (t) => t.id == updatedTransaction.id,
-      );
-
-      final oldSignedAmount =
-          originalTransaction.amount *
-          (originalTransaction.type == TransactionType.income ? 1 : -1);
-      final newSignedAmount =
-          updatedTransaction.amount *
-          (updatedTransaction.type == TransactionType.income ? 1 : -1);
-      final amountDifference = newSignedAmount - oldSignedAmount;
-
-      await updateTransactionUseCase(updatedTransaction);
-
-      await walletCubit.updateWalletBalance(
-        updatedTransaction.walletId,
-        amountDifference,
-      );
-
-      final transactions = await getTransactionsUseCase();
-      emit(state.copyWith(isLoading: false, allTransactions: transactions));
-    } catch (e) {
-      emit(state.copyWith(isLoading: false, error: e.toString()));
-    }
+    await _performDatabaseOperation(
+      () => updateTransactionUseCase.execute(updatedTransaction),
+    );
   }
 
   Future<void> deleteTransaction(String transactionId) async {
-    emit(state.copyWith(isLoading: true));
-    try {
-      final transactionToDelete = state.allTransactions.firstWhere(
-        (t) => t.id == transactionId,
-      );
-
-      final amountToRevert =
-          transactionToDelete.amount *
-          (transactionToDelete.type == TransactionType.income ? -1 : 1);
-
-      await deleteTransactionUseCase(transactionId);
-
-      await walletCubit.updateWalletBalance(
-        transactionToDelete.walletId,
-        amountToRevert,
-      );
-
-      final transactions = await getTransactionsUseCase();
-      emit(state.copyWith(isLoading: false, allTransactions: transactions));
-    } catch (e) {
-      emit(state.copyWith(isLoading: false, error: e.toString()));
-    }
+    await _performDatabaseOperation(
+      () => deleteTransactionUseCase.execute(transactionId),
+    );
   }
+
+  // =====================================
+  // عمليات الفئات (Categories)
+  // =====================================
 
   Future<void> addCategory(TransactionCategory category) async {
     await _performDatabaseOperation(() => addCategoryUseCase(category));
@@ -462,22 +461,20 @@ class TransactionCubit extends Cubit<TransactionState> {
   Future<void> deleteCategory(String categoryId) async {
     emit(state.copyWith(isLoading: true));
     try {
+      // 1. تحديد المعاملات المربوطة بهذه الفئة
       final transactionsToDelete = state.allTransactions
-          .where((t) => t.categoryId == categoryId)
+          .where((t) => t.allocationId == categoryId)
           .toList();
 
-      await deleteCategoryUseCase(categoryId);
-
+      // 2. استخدام الـ UseCase لكل معاملة لضمان استرجاع أرصدة المحافظ بدقة عالية
       for (final transaction in transactionsToDelete) {
-        final amountToRevert =
-            transaction.amount *
-            (transaction.type == TransactionType.income ? -1 : 1);
-        await walletCubit.updateWalletBalance(
-          transaction.walletId,
-          amountToRevert,
-        );
+        await deleteTransactionUseCase.execute(transaction.id);
       }
 
+      // 3. حذف الفئة نفسها بشكل آمن
+      await deleteCategoryUseCase(categoryId);
+
+      // 4. تحديث الـ State بالبيانات النظيفة
       final transactions = await getTransactionsUseCase();
       final categories = await getCategoriesUseCase();
       emit(
@@ -491,6 +488,10 @@ class TransactionCubit extends Cubit<TransactionState> {
       emit(state.copyWith(isLoading: false, error: e.toString()));
     }
   }
+
+  // =====================================
+  // إعدادات الفلترة
+  // =====================================
 
   Future<void> setSinceFilter(DateTime startDate) async {
     emit(state.copyWith(isLoading: true));

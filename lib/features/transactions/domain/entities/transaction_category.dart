@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:opration/features/transactions/domain/entities/transaction.dart';
 
@@ -18,8 +19,9 @@ enum RecurrenceType {
   yearly,
 }
 
-class RecurringPlan {
-  RecurringPlan({
+// إضافة Equatable لضمان تحديث الـ State عند التعديل
+class RecurringPlan extends Equatable {
+  const RecurringPlan({
     required this.id,
     required this.title,
     required this.amount,
@@ -29,6 +31,7 @@ class RecurringPlan {
     this.selectedDays = const [],
     this.lastProcessedDate,
   });
+
   final String id;
   final String title;
   final double amount;
@@ -50,10 +53,23 @@ class RecurringPlan {
       targetWalletId: targetWalletId,
     );
   }
+
+  @override
+  List<Object?> get props => [
+    id,
+    title,
+    amount,
+    type,
+    selectedDays,
+    startDate,
+    lastProcessedDate,
+    targetWalletId,
+  ];
 }
 
-class TransactionCategory {
-  TransactionCategory({
+// إضافة Equatable لضمان شعور الـ Cubit بأي تعديل في الفئة
+class TransactionCategory extends Equatable {
+  const TransactionCategory({
     required this.id,
     required this.name,
     required this.colorValue,
@@ -73,8 +89,9 @@ class TransactionCategory {
         id: json['id'].toString(),
         name: json['name'].toString(),
         colorValue: json['colorValue'] as int,
+        // قراءة آمنة تدعم الـ Name الجديد والـ toString القديم
         type: TransactionType.values.firstWhere(
-          (e) => e.toString() == json['type'],
+          (e) => e.name == json['type'] || e.toString() == json['type'],
           orElse: () => TransactionType.expense,
         ),
         isRecurring: json['isRecurring'] as bool? ?? false,
@@ -109,7 +126,7 @@ class TransactionCategory {
     'id': id,
     'name': name,
     'colorValue': colorValue,
-    'type': type.toString(),
+    'type': type.name, // استخدام .name بدلاً من .toString() للوضوح والتوحيد
     'isRecurring': isRecurring,
     'fixedAmount': fixedAmount,
     'recurrenceType': recurrenceType.name,
@@ -149,4 +166,20 @@ class TransactionCategory {
       parentId: parentId ?? this.parentId,
     );
   }
+
+  @override
+  List<Object?> get props => [
+    id,
+    name,
+    colorValue,
+    type,
+    isRecurring,
+    fixedAmount,
+    recurrenceType,
+    dayOfMonth,
+    daysOfWeek,
+    autoDeduct,
+    targetWalletId,
+    parentId,
+  ];
 }

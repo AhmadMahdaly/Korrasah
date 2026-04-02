@@ -5,6 +5,9 @@ import 'package:opration/features/transactions/presentation/controllers/transact
 
 abstract class TransactionRepository {
   Future<List<Transaction>> getTransactions();
+  Future<Transaction> getTransactionById(
+    String id,
+  );
   Future<void> addTransaction(Transaction transaction);
   Future<void> updateTransaction(Transaction transaction);
   Future<void> deleteTransaction(String transactionId);
@@ -20,6 +23,7 @@ abstract class TransactionRepository {
     PredefinedFilter activeFilter,
   );
   Future<Map<String, dynamic>> getFilterSettings();
+
   Future<MonthlyPlan> getMonthlyPlan(String yearMonth);
   Future<void> saveMonthlyPlan(MonthlyPlan plan);
 }

@@ -94,18 +94,13 @@ class DebtCubit extends Cubit<DebtState> {
         final transaction = Transaction(
           id: const Uuid().v4(),
           amount: amountToDeduct,
-          categoryId: debt.categoryId!,
+          allocationId: debt.categoryId,
           date: now,
           type: TransactionType.expense,
-          walletId: debt.targetWalletId!,
+          walletId: debt.targetWalletId,
           note: 'سداد آلي: ${debt.name}',
         );
         await transactionCubit.addTransaction(transaction);
-
-        await walletCubit.updateWalletBalance(
-          debt.targetWalletId!,
-          -amountToDeduct,
-        );
 
         updatedDebts[i] = debt.copyWith(
           paidAmount: debt.paidAmount + amountToDeduct,
@@ -133,14 +128,13 @@ class DebtCubit extends Cubit<DebtState> {
     final transaction = Transaction(
       id: const Uuid().v4(),
       amount: amount,
-      categoryId: categoryId,
+      allocationId: categoryId,
       date: now,
       type: TransactionType.expense,
       walletId: walletId,
       note: 'دفعة يدوية: ${debt.name}',
     );
     await transactionCubit.addTransaction(transaction);
-    await walletCubit.updateWalletBalance(walletId, -amount);
 
     final updatedList = state.items.map((d) {
       if (d.id == debt.id) {

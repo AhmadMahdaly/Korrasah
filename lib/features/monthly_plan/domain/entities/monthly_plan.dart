@@ -432,9 +432,8 @@ class MonthlyPlan extends Equatable {
   double get totalPlannedIncome =>
       incomes.fold(0, (sum, item) => sum + item.amount);
 
-  double get totalBudgetedExpense => expenses
-      .where((e) => e.walletId == null)
-      .fold(0, (sum, item) => sum + item.budgetedAmount);
+  double get totalBudgetedExpense =>
+      expenses.fold(0, (sum, item) => sum + item.budgetedAmount);
 
   double get totalPlannedDebts =>
       debts.fold(0, (sum, item) => sum + item.amount);

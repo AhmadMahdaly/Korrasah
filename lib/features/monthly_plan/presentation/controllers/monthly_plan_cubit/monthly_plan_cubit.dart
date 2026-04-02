@@ -1,7 +1,8 @@
 import 'package:equatable/equatable.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:opration/features/monthly_plan/domain/entities/budget_summary.dart';
 import 'package:opration/features/monthly_plan/domain/entities/monthly_plan.dart';
+import 'package:opration/features/monthly_plan/domain/usecases/get_budget_summary_usecase.dart';
 import 'package:opration/features/monthly_plan/domain/usecases/get_monthly_plan.dart';
 import 'package:opration/features/monthly_plan/domain/usecases/save_monthly_plan.dart';
 
@@ -11,31 +12,12 @@ class MonthlyPlanCubit extends Cubit<MonthlyPlanState> {
   MonthlyPlanCubit({
     required this.getMonthlyPlanUseCase,
     required this.saveMonthlyPlanUseCase,
+    required this.getBudgetSummaryUseCase,
   }) : super(MonthlyPlanState.initial());
+
   final GetMonthlyPlanUseCase getMonthlyPlanUseCase;
   final SaveMonthlyPlanUseCase saveMonthlyPlanUseCase;
-
-  Future<void> saveCurrentPlan() async {
-    if (isClosed ||
-        state.plan == null ||
-        state.status == MonthlyPlanStatus.saving) {
-      return;
-    }
-    emit(state.copyWith(status: MonthlyPlanStatus.saving));
-    try {
-      await saveMonthlyPlanUseCase(state.plan!);
-
-      if (!isClosed) {
-        emit(state.copyWith(status: MonthlyPlanStatus.loaded));
-      }
-    } catch (e) {
-      if (!isClosed) {
-        emit(
-          state.copyWith(status: MonthlyPlanStatus.error, error: e.toString()),
-        );
-      }
-    }
-  }
+  final GetBudgetSummaryUseCase getBudgetSummaryUseCase;
 
   Future<void> loadPlanForMonth(DateTime month) async {
     emit(state.copyWith(status: MonthlyPlanStatus.loading));
@@ -64,20 +46,53 @@ class MonthlyPlanCubit extends Cubit<MonthlyPlanState> {
         }
       }
 
+      final summary = await getBudgetSummaryUseCase.execute(month);
+
       emit(
         state.copyWith(
           status: MonthlyPlanStatus.loaded,
           plan: plan,
+          summary: summary,
           currentMonth: month,
         ),
       );
     } catch (e) {
-      emit(
-        state.copyWith(
-          status: MonthlyPlanStatus.error,
-          error: e.toString(),
-        ),
-      );
+      if (!isClosed) {
+        emit(
+          state.copyWith(
+            status: MonthlyPlanStatus.error,
+            error: e.toString(),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> saveCurrentPlan() async {
+    if (isClosed ||
+        state.plan == null ||
+        state.status == MonthlyPlanStatus.saving) {
+      return;
+    }
+
+    emit(state.copyWith(status: MonthlyPlanStatus.saving));
+
+    try {
+      await saveMonthlyPlanUseCase(state.plan!);
+
+      final summary = await getBudgetSummaryUseCase.execute(state.currentMonth);
+
+      if (!isClosed) {
+        emit(
+          state.copyWith(status: MonthlyPlanStatus.loaded, summary: summary),
+        );
+      }
+    } catch (e) {
+      if (!isClosed) {
+        emit(
+          state.copyWith(status: MonthlyPlanStatus.error, error: e.toString()),
+        );
+      }
     }
   }
 
@@ -88,10 +103,23 @@ class MonthlyPlanCubit extends Cubit<MonthlyPlanState> {
 
     try {
       await saveMonthlyPlanUseCase(plan);
+
+      final summary = await getBudgetSummaryUseCase.execute(state.currentMonth);
+      if (!isClosed) {
+        emit(state.copyWith(summary: summary));
+      }
     } catch (e) {
       if (!isClosed) {
         emit(state.copyWith(error: 'فشل الحفظ التلقائي: $e'));
       }
     }
+  }
+
+  Future<void> refreshBudgetSummary() async {
+    if (isClosed) return;
+    try {
+      final summary = await getBudgetSummaryUseCase.execute(state.currentMonth);
+      emit(state.copyWith(summary: summary));
+    } catch (_) {}
   }
 }

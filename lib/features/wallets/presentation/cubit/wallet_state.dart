@@ -1,5 +1,6 @@
 part of 'wallet_cubit.dart';
 
+// ----- Wallet State (يمكن وضعها في ملف منفصل كما تفعل عادة) -----
 abstract class WalletState extends Equatable {
   const WalletState();
 
@@ -12,12 +13,11 @@ class WalletInitial extends WalletState {}
 class WalletLoading extends WalletState {}
 
 class WalletLoaded extends WalletState {
-  const WalletLoaded(this.wallets, {this.showMainWallet = false});
+  const WalletLoaded(this.wallets);
   final List<Wallet> wallets;
-  final bool showMainWallet;
 
   @override
-  List<Object> get props => [wallets, showMainWallet];
+  List<Object> get props => [wallets];
 }
 
 class WalletError extends WalletState {

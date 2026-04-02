@@ -10,40 +10,52 @@ class TransactionRepositoryImpl implements TransactionRepository {
   final TransactionLocalDataSource localDataSource;
 
   @override
-  Future<void> addCategory(TransactionCategory category) =>
-      localDataSource.saveCategory(category);
-  @override
-  Future<void> updateCategory(TransactionCategory category) =>
-      localDataSource.updateCategory(category);
-  @override
-  Future<void> deleteCategory(String categoryId) =>
-      localDataSource.deleteCategory(categoryId);
-  @override
-  Future<List<TransactionCategory>> getCategories() =>
-      localDataSource.getCategories();
+  Future<Transaction> getTransactionById(String id) =>
+      localDataSource.getTransactionById(id);
 
-  @override
-  Future<void> addTransaction(Transaction transaction) =>
-      localDataSource.saveTransaction(transaction);
-  @override
-  Future<void> updateTransaction(Transaction transaction) =>
-      localDataSource.updateTransaction(transaction);
-  @override
-  Future<void> deleteTransaction(String transactionId) =>
-      localDataSource.deleteTransaction(transactionId);
   @override
   Future<List<Transaction>> getTransactions() =>
       localDataSource.getTransactions();
 
   @override
+  Future<void> addTransaction(Transaction transaction) =>
+      localDataSource.saveTransaction(transaction);
+
+  @override
+  Future<void> updateTransaction(Transaction transaction) =>
+      localDataSource.updateTransaction(transaction);
+
+  @override
+  Future<void> deleteTransaction(String transactionId) =>
+      localDataSource.deleteTransaction(transactionId);
+
+  @override
+  Future<List<TransactionCategory>> getCategories() =>
+      localDataSource.getCategories();
+
+  @override
+  Future<void> addCategory(TransactionCategory category) =>
+      localDataSource.saveCategory(category);
+
+  @override
+  Future<void> updateCategory(TransactionCategory category) =>
+      localDataSource.updateCategory(category);
+
+  @override
+  Future<void> deleteCategory(String categoryId) =>
+      localDataSource.deleteCategory(categoryId);
+
+  @override
   Future<Map<String, dynamic>> getFilterSettings() =>
       localDataSource.getDateFilter();
+
   @override
   Future<void> saveFilterSettings(
     DateTime startDate,
     DateTime endDate,
     PredefinedFilter activeFilter,
   ) => localDataSource.saveDateFilter(startDate, endDate, activeFilter);
+
   @override
   Future<MonthlyPlan> getMonthlyPlan(String yearMonth) =>
       localDataSource.getMonthlyPlan(yearMonth);

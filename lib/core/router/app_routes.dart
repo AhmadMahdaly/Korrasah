@@ -16,4 +16,6 @@ class AppRoutes {
   static const String moreScreen = '/moreScreen';
   static const String debtsView = '/debtsView';
   static const String shoppingListView = '/shoppingListView';
+  static const String recurringTransactionsScreen =
+      '/recurringTransactionsScreen';
 }

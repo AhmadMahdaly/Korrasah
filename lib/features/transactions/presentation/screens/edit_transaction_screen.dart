@@ -38,8 +38,8 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
     _noteController = TextEditingController(
       text: widget.transaction.note ?? '',
     );
-    _selectedCategoryId = widget.transaction.categoryId;
-    _selectedWalletId = widget.transaction.walletId;
+    _selectedCategoryId = widget.transaction.allocationId!;
+    _selectedWalletId = widget.transaction.walletId!;
     _selectedDate = widget.transaction.date;
   }
 
@@ -56,7 +56,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
     final updatedTransaction = Transaction(
       id: widget.transaction.id,
       amount: double.parse(_amountController.text),
-      categoryId: _selectedCategoryId,
+      allocationId: _selectedCategoryId,
       date: _selectedDate,
       note: _noteController.text,
       type: widget.transaction.type,

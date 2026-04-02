@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:opration/features/transactions/domain/entities/transaction_category.dart';
 
-enum WalletType { mainBudget, savings, sideIndependent, sideLinked }
+enum WalletType { savings, sideIndependent, sideLinked }
 
 enum ExecutionType { auto, confirm, manual, none }
 
@@ -10,27 +10,24 @@ class Wallet extends Equatable {
     required this.id,
     required this.name,
     required this.balance,
-    this.isMain = false,
+    this.colorValue,
     this.type = WalletType.sideIndependent,
     this.monthlyAmount,
     this.executionDay,
     this.executionType = ExecutionType.none,
     this.sourceWalletId,
-
     this.recurrenceType = RecurrenceType.none,
     this.selectedDays = const [],
     this.startDate,
     this.lastProcessedDate,
-
     this.includeInTotal = true,
   });
 
   final String id;
   final String name;
   final double balance;
-  final bool isMain;
   final WalletType type;
-
+  final int? colorValue;
   final double? monthlyAmount;
   final int? executionDay;
   final ExecutionType executionType;
@@ -46,8 +43,8 @@ class Wallet extends Equatable {
     String? id,
     String? name,
     double? balance,
-    bool? isMain,
     WalletType? type,
+    int? colorValue,
     double? monthlyAmount,
     int? executionDay,
     ExecutionType? executionType,
@@ -60,9 +57,9 @@ class Wallet extends Equatable {
   }) {
     return Wallet(
       id: id ?? this.id,
+      colorValue: colorValue ?? this.colorValue,
       name: name ?? this.name,
       balance: balance ?? this.balance,
-      isMain: isMain ?? this.isMain,
       type: type ?? this.type,
       monthlyAmount: monthlyAmount ?? this.monthlyAmount,
       executionDay: executionDay ?? this.executionDay,
@@ -81,7 +78,6 @@ class Wallet extends Equatable {
     id,
     name,
     balance,
-    isMain,
     type,
     monthlyAmount,
     executionDay,
@@ -92,5 +88,6 @@ class Wallet extends Equatable {
     startDate,
     lastProcessedDate,
     includeInTotal,
+    colorValue,
   ];
 }

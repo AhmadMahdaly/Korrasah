@@ -1,92 +1,89 @@
 part of 'transactions_cubit.dart';
 
-enum PredefinedFilter { today, week, month, year, since, custom, singleDay }
+enum PredefinedFilter { today, week, month, year, singleDay, since, custom }
 
-@immutable
 class TransactionState extends Equatable {
   const TransactionState({
-    this.pendingTransactions = const [],
     this.isLoading = false,
-    this.error,
     this.allTransactions = const [],
     this.allCategories = const [],
+    this.pendingTransactions = const [],
     this.filterStartDate,
     this.filterEndDate,
     this.activeFilter = PredefinedFilter.month,
     this.selectedWalletId,
+    this.error,
   });
+
   final bool isLoading;
-  final String? error;
   final List<Transaction> allTransactions;
   final List<TransactionCategory> allCategories;
+  final List<TransactionCategory> pendingTransactions;
   final DateTime? filterStartDate;
   final DateTime? filterEndDate;
   final PredefinedFilter activeFilter;
   final String? selectedWalletId;
-  final List<TransactionCategory> pendingTransactions;
+  final String? error;
+
   List<Transaction> get filteredTransactions {
-    if (filterStartDate == null || filterEndDate == null) {
-      return [];
-    }
-    final inclusiveEndDate = DateTime(
-      filterEndDate!.year,
-      filterEndDate!.month,
-      filterEndDate!.day,
-      23,
-      59,
-      59,
-    );
-    var dateFilteredTransactions = allTransactions.where((t) {
-      return !t.date.isBefore(filterStartDate!) &&
-          !t.date.isAfter(inclusiveEndDate);
+    final filtered = allTransactions.where((tx) {
+      if (selectedWalletId != null && tx.walletId != selectedWalletId) {
+        return false;
+      }
+
+      // 2. الفلترة بتاريخ البداية
+      if (filterStartDate != null && tx.date.isBefore(filterStartDate!)) {
+        return false;
+      }
+
+      // 3. الفلترة بتاريخ النهاية
+      if (filterEndDate != null && tx.date.isAfter(filterEndDate!)) {
+        return false;
+      }
+
+      return true;
     }).toList();
 
-    if (selectedWalletId != null) {
-      dateFilteredTransactions = dateFilteredTransactions
-          .where((t) => t.walletId == selectedWalletId)
-          .toList();
-    }
-
-    return dateFilteredTransactions;
+    return filtered;
   }
 
   TransactionState copyWith({
     bool? isLoading,
-    String? error,
     List<Transaction>? allTransactions,
     List<TransactionCategory>? allCategories,
+    List<TransactionCategory>? pendingTransactions,
     DateTime? filterStartDate,
     DateTime? filterEndDate,
     PredefinedFilter? activeFilter,
     String? selectedWalletId,
     bool clearSelectedWalletId = false,
-    List<TransactionCategory>? pendingTransactions,
+    String? error,
   }) {
     return TransactionState(
       isLoading: isLoading ?? this.isLoading,
-      error: error,
       allTransactions: allTransactions ?? this.allTransactions,
       allCategories: allCategories ?? this.allCategories,
+      pendingTransactions: pendingTransactions ?? this.pendingTransactions,
       filterStartDate: filterStartDate ?? this.filterStartDate,
       filterEndDate: filterEndDate ?? this.filterEndDate,
       activeFilter: activeFilter ?? this.activeFilter,
       selectedWalletId: clearSelectedWalletId
           ? null
-          : selectedWalletId ?? this.selectedWalletId,
-      pendingTransactions: pendingTransactions ?? this.pendingTransactions,
+          : (selectedWalletId ?? this.selectedWalletId),
+      error: error ?? this.error,
     );
   }
 
   @override
   List<Object?> get props => [
     isLoading,
-    error,
     allTransactions,
     allCategories,
+    pendingTransactions,
     filterStartDate,
     filterEndDate,
     activeFilter,
     selectedWalletId,
-    pendingTransactions,
+    error,
   ];
 }

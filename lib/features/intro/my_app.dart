@@ -27,9 +27,7 @@ class MyApp extends StatelessWidget {
       addWalletUseCase: getIt(),
       updateWalletUseCase: getIt(),
       deleteWalletUseCase: getIt(),
-      setMainWalletUseCase: getIt(),
-      getShowMainWalletPrefUseCase: getIt(),
-      saveShowMainWalletPrefUseCase: getIt(),
+
       transferBalanceUseCase: getIt(),
     );
     return GestureDetector(
@@ -48,7 +46,7 @@ class MyApp extends StatelessWidget {
               uuid: getIt(),
               sharedPreferences: getIt(),
               getTransactionsUseCase: getIt(),
-              addTransactionUseCase: getIt(),
+              processTransactionUseCase: getIt(),
               updateTransactionUseCase: getIt(),
               deleteTransactionUseCase: getIt(),
               getCategoriesUseCase: getIt(),
@@ -57,13 +55,14 @@ class MyApp extends StatelessWidget {
               deleteCategoryUseCase: getIt(),
               getFilterSettingsUseCase: getIt(),
               saveFilterSettingsUseCase: getIt(),
-              walletCubit: walletCubit,
+              getWalletsUseCase: getIt(),
             )..loadInitialData(),
           ),
           BlocProvider<MonthlyPlanCubit>(
             create: (context) => MonthlyPlanCubit(
               getMonthlyPlanUseCase: getIt(),
               saveMonthlyPlanUseCase: getIt(),
+              getBudgetSummaryUseCase: getIt(),
             )..loadPlanForMonth(DateTime.now()),
           ),
           BlocProvider<WalletCubit>(

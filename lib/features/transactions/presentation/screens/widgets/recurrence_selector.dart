@@ -1,26 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:opration/features/transactions/domain/entities/transaction_category.dart';
 
-class RecurrenceSelector extends StatefulWidget {
+class RecurrenceSelector extends StatelessWidget {
   const RecurrenceSelector({
     required this.onChanged,
+    required this.value,
+    required this.selectedDays,
     super.key,
-    this.initialType = RecurrenceType.none,
-    this.initialDays = const [],
   });
-  final RecurrenceType initialType;
-  final List<int> initialDays;
-  final Function(RecurrenceType, List<int>) onChanged;
 
-  @override
-  State<RecurrenceSelector> createState() => _RecurrenceSelectorState();
-}
+  final RecurrenceType value;
+  final List<int> selectedDays;
+  final void Function(RecurrenceType, List<int>) onChanged;
 
-class _RecurrenceSelectorState extends State<RecurrenceSelector> {
-  late RecurrenceType _selectedType;
-  late List<int> _selectedDays;
-
-  final Map<RecurrenceType, String> _recurrenceNames = {
+  static const Map<RecurrenceType, String> _recurrenceNames = {
     RecurrenceType.none: 'لا شيء (مرة واحدة)',
     RecurrenceType.daily: 'كل يوم',
     RecurrenceType.weekdays: 'أيام العمل (الأحد - الخميس)',
@@ -37,7 +30,7 @@ class _RecurrenceSelectorState extends State<RecurrenceSelector> {
     RecurrenceType.yearly: 'كل سنة',
   };
 
-  final List<Map<String, dynamic>> _weekDays = [
+  static const List<Map<String, dynamic>> _weekDays = [
     {'name': 'السبت', 'val': 6},
     {'name': 'الأحد', 'val': 7},
     {'name': 'الإثنين', 'val': 1},
@@ -48,25 +41,23 @@ class _RecurrenceSelectorState extends State<RecurrenceSelector> {
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _selectedType = widget.initialType;
-    _selectedDays = List.from(widget.initialDays);
-  }
-
-  void _updateParent() => widget.onChanged(_selectedType, _selectedDays);
-
-  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DropdownButtonFormField<RecurrenceType>(
-          initialValue: _selectedType,
+          value: value,
           isExpanded: true,
           decoration: InputDecoration(
             labelText: 'تكرار العملية',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                10,
+              ),
+              borderSide: BorderSide.none,
+            ),
+            filled: true,
+            fillColor: Colors.grey.shade50,
           ),
           items: RecurrenceType.values.map((type) {
             return DropdownMenuItem(
@@ -75,22 +66,18 @@ class _RecurrenceSelectorState extends State<RecurrenceSelector> {
             );
           }).toList(),
           onChanged: (val) {
-            if (val != null) {
-              setState(() {
-                _selectedType = val;
-                _selectedDays.clear();
-              });
-              _updateParent();
+            if (val != null && val != value) {
+              onChanged(val, []);
             }
           },
         ),
-        const SizedBox(height: 16),
-        _buildDynamicSelector(),
+        const SizedBox(height: 12),
+        _buildDynamicSelector(context),
       ],
     );
   }
 
-  Widget _buildDynamicSelector() {
+  Widget _buildDynamicSelector(BuildContext context) {
     final needsWeekDays = [
       RecurrenceType.weekly,
       RecurrenceType.biWeekly,
@@ -102,32 +89,41 @@ class _RecurrenceSelectorState extends State<RecurrenceSelector> {
       RecurrenceType.everyThreeMonths,
       RecurrenceType.everyFourMonths,
       RecurrenceType.everySixMonths,
+    ];
+    final needsFullDate = [
       RecurrenceType.yearly,
     ];
 
-    if (needsWeekDays.contains(_selectedType)) {
+    if (needsWeekDays.contains(value)) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'اختر أيام الأسبوع:',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
+            runSpacing: 8,
             children: _weekDays.map((day) {
-              final isSelected = _selectedDays.contains(day['val']);
+              final isSelected = selectedDays.contains(day['val']);
               return FilterChip(
                 label: Text(day['name'].toString()),
                 selected: isSelected,
+                selectedColor: Theme.of(context).primaryColor.withAlpha(40),
+                checkmarkColor: Theme.of(context).primaryColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 onSelected: (selected) {
-                  setState(() {
-                    selected
-                        ? _selectedDays.add(day['val'] as int)
-                        : _selectedDays.remove(day['val']);
-                  });
-                  _updateParent();
+                  final newDays = List<int>.from(selectedDays);
+                  if (selected) {
+                    newDays.add(day['val'] as int);
+                  } else {
+                    newDays.remove(day['val']);
+                  }
+                  onChanged(value, newDays);
                 },
               );
             }).toList(),
@@ -136,43 +132,85 @@ class _RecurrenceSelectorState extends State<RecurrenceSelector> {
       );
     }
 
-    if (needsMonthDays.contains(_selectedType)) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'اختر يوم التنفيذ (1-31):',
-            style: TextStyle(fontWeight: FontWeight.bold),
+    if (needsMonthDays.contains(value)) {
+      var currentDay = selectedDays.isNotEmpty ? selectedDays.first : null;
+
+      if (currentDay != null && (currentDay < 1 || currentDay > 31)) {
+        currentDay = 1;
+      }
+
+      return DropdownButtonFormField<int>(
+        value: currentDay,
+        decoration: InputDecoration(
+          labelText: 'يوم التنفيذ في الشهر',
+          filled: true,
+          fillColor: Colors.grey.shade50,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide.none,
           ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 45,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: 31,
-              itemBuilder: (context, index) {
-                final day = index + 1;
-                final isSelected = _selectedDays.contains(day);
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                  child: FilterChip(
-                    label: Text(day.toString()),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() {
-                        _selectedDays.clear();
-                        if (selected) _selectedDays.add(day);
-                      });
-                      _updateParent();
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+        ),
+        items: List.generate(31, (index) {
+          final day = index + 1;
+          return DropdownMenuItem(
+            value: day,
+            child: Text('يوم $day'),
+          );
+        }),
+        onChanged: (val) {
+          if (val != null) {
+            onChanged(value, [val]);
+          }
+        },
       );
     }
+
+    if (needsFullDate.contains(value)) {
+      var dateText = 'اختر تاريخ التنفيذ السنوي';
+      if (selectedDays.length == 2) {
+        dateText = 'يوم ${selectedDays[1]} / شهر ${selectedDays[0]}';
+      }
+
+      return InkWell(
+        onTap: () async {
+          final picked = await showDatePicker(
+            context: context,
+            initialDate: DateTime.now(),
+            firstDate: DateTime(2000),
+            lastDate: DateTime(2100),
+            helpText: 'اختر تاريخ التكرار السنوي',
+          );
+
+          if (picked != null) {
+            onChanged(value, [picked.month, picked.day]);
+          }
+        },
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                dateText,
+                style: TextStyle(
+                  color: selectedDays.length == 2
+                      ? Colors.black87
+                      : Colors.grey.shade600,
+                  fontSize: 16,
+                ),
+              ),
+              Icon(Icons.calendar_month, color: Theme.of(context).primaryColor),
+            ],
+          ),
+        ),
+      );
+    }
+
     return const SizedBox.shrink();
   }
 }

@@ -16,7 +16,6 @@ import 'package:opration/features/monthly_plan/presentation/controllers/monthly_
 import 'package:opration/features/transactions/domain/entities/transaction.dart';
 import 'package:opration/features/transactions/domain/entities/transaction_category.dart';
 import 'package:opration/features/transactions/presentation/controllers/transactions_cubit/transactions_cubit.dart';
-import 'package:opration/features/transactions/presentation/screens/widgets/add_category_dialog.dart';
 import 'package:opration/features/wallets/domain/entities/wallet.dart';
 import 'package:opration/features/wallets/presentation/cubit/wallet_cubit.dart';
 import 'package:uuid/uuid.dart';
@@ -32,8 +31,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   @override
   void initState() {
     super.initState();
-
     context.read<TransactionCubit>().checkScheduledTransactions();
+
+    final planCubit = context.read<MonthlyPlanCubit>();
+    if (planCubit.state.plan == null) {
+      planCubit.loadPlanForMonth(DateTime.now());
+    }
   }
 
   @override
@@ -45,15 +48,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         appBar: PageHeader(
           isLeading: false,
           heightBar: 145.h,
-
           bottom: Container(
             height: 50.h,
             margin: EdgeInsets.symmetric(horizontal: 16.w),
             decoration: BoxDecoration(
-              border: Border.all(
-                color: AppColors.white,
-                width: 0.5.w,
-              ),
+              border: Border.all(color: AppColors.white, width: 0.5.w),
               borderRadius: BorderRadius.circular(kRadius),
             ),
             child: TabBar(
@@ -78,12 +77,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ],
             ),
           ),
-
           actions: [
             BlocBuilder<TransactionCubit, TransactionState>(
               builder: (context, state) {
                 final pendingCount = state.pendingTransactions.length;
-
                 return SizedBox(
                   width: 45.w,
                   child: Stack(
@@ -96,11 +93,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           color: AppColors.white,
                           size: 24.r,
                         ),
-                        onPressed: () {
-                          context.pushNamed(
-                            AppRoutes.notificationsScreen,
-                          );
-                        },
+                        onPressed: () =>
+                            context.pushNamed(AppRoutes.notificationsScreen),
                       ),
                       if (pendingCount > 0)
                         Positioned(
@@ -135,7 +129,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         body: const TabBarView(
           children: [
             _TransactionForm(type: TransactionType.expense),
-
             _TransactionForm(type: TransactionType.income),
           ],
         ),
@@ -162,6 +155,8 @@ class _TransactionFormState extends State<_TransactionForm> {
   String? _selectedMainCategoryId;
   String? _selectedSubCategoryId;
 
+  bool _isWalletTarget = false;
+
   @override
   void dispose() {
     _amountController.dispose();
@@ -169,22 +164,8 @@ class _TransactionFormState extends State<_TransactionForm> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
-      final finalCategoryId = _selectedSubCategoryId ?? _selectedMainCategoryId;
-
-      if (finalCategoryId == null) {
-        showCustomSnackBar(
-          context,
-          msgColor: AppColors.white,
-          message: widget.type == TransactionType.expense
-              ? 'متنساش تختار المخصص اللي صرفت منه'
-              : 'متنساش تختار مصدر الدخل',
-          backgroundColor: AppColors.orangeColor,
-        );
-        return;
-      }
-
       if (_selectedWalletId == null) {
         showCustomSnackBar(
           context,
@@ -194,24 +175,43 @@ class _TransactionFormState extends State<_TransactionForm> {
         return;
       }
 
+      String? finalCategoryId;
+
+      if (_isWalletTarget) {
+        finalCategoryId = _selectedSubCategoryId ?? _selectedWalletId;
+      } else {
+        finalCategoryId = _selectedSubCategoryId ?? _selectedMainCategoryId;
+        if (finalCategoryId == null) {
+          showCustomSnackBar(
+            context,
+            msgColor: AppColors.white,
+            message: widget.type == TransactionType.expense
+                ? 'متنساش تختار المخصص اللي صرفت منه'
+                : 'متنساش تختار مصدر الدخل',
+            backgroundColor: AppColors.orangeColor,
+          );
+          return;
+        }
+      }
+
       final amount = double.parse(_amountController.text);
 
       final transaction = Transaction(
         id: getIt<Uuid>().v4(),
         amount: amount,
-        categoryId: finalCategoryId,
+        allocationId: finalCategoryId,
         date: _selectedDate,
         note: _noteController.text.isNotEmpty ? _noteController.text : '',
         type: widget.type,
-        walletId: _selectedWalletId!,
+        walletId: _selectedWalletId,
       );
 
-      context.read<TransactionCubit>().addTransaction(transaction);
+      await context.read<TransactionCubit>().addTransaction(transaction);
 
-      context.read<WalletCubit>().updateWalletBalance(
-        _selectedWalletId!,
-        widget.type == TransactionType.income ? amount : -amount,
-      );
+      if (mounted) {
+        await context.read<WalletCubit>().loadWallets();
+        await context.read<MonthlyPlanCubit>().refreshBudgetSummary();
+      }
 
       playTimerSound();
 
@@ -223,12 +223,14 @@ class _TransactionFormState extends State<_TransactionForm> {
         _selectedDate = DateTime.now();
       });
 
-      showCustomSnackBar(
-        context,
-        msgColor: Colors.white,
-        message: 'تم التسجيل بنجاح',
-        backgroundColor: AppColors.successColor,
-      );
+      if (mounted) {
+        showCustomSnackBar(
+          context,
+          msgColor: Colors.white,
+          message: 'تم التسجيل بنجاح',
+          backgroundColor: AppColors.successColor,
+        );
+      }
     }
   }
 
@@ -256,7 +258,7 @@ class _TransactionFormState extends State<_TransactionForm> {
       spent = allTxs
           .where(
             (t) =>
-                relevantIds.contains(t.categoryId) &&
+                relevantIds.contains(t.allocationId) &&
                 t.type == TransactionType.expense &&
                 t.date.year == now.year &&
                 t.date.month == now.month,
@@ -275,7 +277,7 @@ class _TransactionFormState extends State<_TransactionForm> {
       spent = allTxs
           .where(
             (t) =>
-                relevantIds.contains(t.categoryId) &&
+                relevantIds.contains(t.allocationId) &&
                 t.type == TransactionType.income &&
                 t.date.year == now.year &&
                 t.date.month == now.month,
@@ -287,39 +289,28 @@ class _TransactionFormState extends State<_TransactionForm> {
   }
 
   void _addNewSubCategoryForSelectedMain() {
-    if (_selectedMainCategoryId == null) return;
+    final parentId = _isWalletTarget
+        ? _selectedWalletId
+        : _selectedMainCategoryId;
+
+    if (parentId == null) return;
 
     final allCategories = context.read<TransactionCubit>().state.allCategories;
-    final mainCategory = allCategories.firstWhere(
-      (c) => c.id == _selectedMainCategoryId,
-    );
 
-    final dummySubCategory = TransactionCategory(
-      id: '',
-      name: '',
-      colorValue: mainCategory.colorValue,
-      type: mainCategory.type,
-      parentId: mainCategory.id,
-    );
-
-    showModalBottomSheet<TransactionCategory>(
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: true,
-      context: context,
-      builder: (_) => AddCategoryWidget(
-        type: mainCategory.type,
-        categoryToEdit: dummySubCategory,
+    final parentCategory = allCategories.firstWhere(
+      (c) => c.id == parentId,
+      orElse: () => TransactionCategory(
+        id: parentId,
+        name: 'فئة جديدة',
+        colorValue: Colors.blueGrey.value,
+        type: widget.type,
       ),
-    ).then((result) {
-      if (result != null) {
-        final newSubCategory = result.copyWith(id: const Uuid().v4());
-        context.read<TransactionCubit>().addCategory(newSubCategory);
-        setState(() {
-          _selectedSubCategoryId = newSubCategory.id;
-        });
-      }
-    });
+    );
+
+    _showAddSubCategoryBottomSheet(
+      context,
+      parentCategory,
+    );
   }
 
   @override
@@ -327,28 +318,104 @@ class _TransactionFormState extends State<_TransactionForm> {
     return BlocBuilder<TransactionCubit, TransactionState>(
       builder: (context, txState) {
         final allCategories = txState.allCategories;
-        final mainCategories = allCategories
-            .where((c) => c.type == widget.type && c.parentId == null)
-            .toList();
-        final subCategories = _selectedMainCategoryId != null
-            ? allCategories
-                  .where((c) => c.parentId == _selectedMainCategoryId)
-                  .toList()
-            : <TransactionCategory>[];
 
         return BlocBuilder<MonthlyPlanCubit, MonthlyPlanState>(
           builder: (context, planState) {
+            final plan = planState.plan;
+
+            var categoryDropdownItems = <DropdownMenuItem<String>>[];
+
+            if (!_isWalletTarget && plan != null) {
+              if (widget.type == TransactionType.expense) {
+                categoryDropdownItems = plan.expenses.map((exp) {
+                  final category = allCategories.firstWhere(
+                    (c) => c.id == exp.categoryId,
+                    orElse: () => TransactionCategory(
+                      id: exp.categoryId,
+                      name: exp.name,
+                      colorValue: Colors.grey.value,
+                      type: TransactionType.expense,
+                    ),
+                  );
+
+                  final remaining = _calculateRemaining(
+                    category,
+                    plan,
+                    txState.allTransactions,
+                    allCategories,
+                  );
+
+                  return DropdownMenuItem(
+                    value: category.id,
+                    child: Text('${exp.name} (متبقي: ${remaining.truncate()})'),
+                  );
+                }).toList();
+              } else {
+                categoryDropdownItems = plan.incomes
+                    .map((inc) {
+                      final category = allCategories.firstWhere(
+                        (c) =>
+                            c.name == inc.name &&
+                            c.type == TransactionType.income,
+                        orElse: () => TransactionCategory(
+                          id: '',
+                          name: inc.name,
+                          colorValue: Colors.grey.value,
+                          type: TransactionType.income,
+                        ),
+                      );
+
+                      return DropdownMenuItem<String>(
+                        value: category.id.isNotEmpty ? category.id : null,
+                        child: Text(inc.name),
+                      );
+                    })
+                    .where((item) => item.value != null)
+                    .toList();
+              }
+
+              if (_selectedMainCategoryId != null &&
+                  !categoryDropdownItems.any(
+                    (item) => item.value == _selectedMainCategoryId,
+                  )) {
+                _selectedMainCategoryId = null;
+              }
+            }
+
+            final parentIdForSub = _isWalletTarget
+                ? _selectedWalletId
+                : _selectedMainCategoryId;
+
+            final subCategories = parentIdForSub != null
+                ? allCategories
+                      .where((c) => c.parentId == parentIdForSub)
+                      .toList()
+                : <TransactionCategory>[];
+
             return BlocBuilder<WalletCubit, WalletState>(
               builder: (context, walletState) {
-                final wallets = (walletState is WalletLoaded)
-                    ? walletState.wallets
-                          .where(
-                            (w) =>
-                                w.type != WalletType.savings &&
-                                w.type != WalletType.mainBudget,
-                          )
-                          .toList()
+                var wallets = (walletState is WalletLoaded)
+                    ? walletState.wallets.toList()
                     : <Wallet>[];
+
+                if (!_isWalletTarget) {
+                  wallets = wallets
+                      .where((w) => w.type == WalletType.sideLinked)
+                      .toList();
+                } else {
+                  wallets = wallets
+                      .where(
+                        (w) =>
+                            w.type == WalletType.sideIndependent ||
+                            w.type == WalletType.savings,
+                      )
+                      .toList();
+                }
+
+                if (_selectedWalletId != null &&
+                    !wallets.any((w) => w.id == _selectedWalletId)) {
+                  _selectedWalletId = null;
+                }
 
                 if (_selectedWalletId == null && wallets.isNotEmpty) {
                   _selectedWalletId = wallets.first.id;
@@ -409,7 +476,65 @@ class _TransactionFormState extends State<_TransactionForm> {
                         24.verticalSpace,
 
                         Text(
-                          'المحفظة',
+                          'نوع المعاملة',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        8.verticalSpace,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: RadioListTile<bool>(
+                                title: Text(
+                                  widget.type == TransactionType.expense
+                                      ? 'من مخصص'
+                                      : 'مصدر خطة',
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                value: false,
+                                groupValue: _isWalletTarget,
+                                contentPadding: EdgeInsets.zero,
+                                onChanged: (val) => setState(() {
+                                  _isWalletTarget = val!;
+                                  _selectedWalletId = null;
+                                  _selectedMainCategoryId = null;
+                                  _selectedSubCategoryId = null;
+                                }),
+                              ),
+                            ),
+                            Expanded(
+                              child: RadioListTile<bool>(
+                                title: Text(
+                                  'محفظة مباشرة',
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                value: true,
+                                groupValue: _isWalletTarget,
+                                contentPadding: EdgeInsets.zero,
+                                onChanged: (val) => setState(() {
+                                  _isWalletTarget = val!;
+                                  _selectedWalletId = null;
+                                  _selectedMainCategoryId = null;
+                                  _selectedSubCategoryId = null;
+                                }),
+                              ),
+                            ),
+                          ],
+                        ),
+                        24.verticalSpace,
+
+                        Text(
+                          widget.type == TransactionType.expense
+                              ? 'المحفظة (الدفع من) *'
+                              : 'المحفظة (الإيداع في) *',
                           style: TextStyle(
                             fontSize: 14.sp,
                             fontWeight: FontWeight.bold,
@@ -417,7 +542,7 @@ class _TransactionFormState extends State<_TransactionForm> {
                         ),
                         8.verticalSpace,
                         DropdownButtonFormField<String>(
-                          initialValue: _selectedWalletId,
+                          value: _selectedWalletId,
                           decoration: _dropdownDecoration(),
                           icon: const Icon(
                             Icons.keyboard_arrow_down,
@@ -433,61 +558,52 @@ class _TransactionFormState extends State<_TransactionForm> {
                                 ),
                               )
                               .toList(),
-                          onChanged: (v) =>
-                              setState(() => _selectedWalletId = v),
+                          onChanged: (v) => setState(() {
+                            _selectedWalletId = v;
+                            if (_isWalletTarget) {
+                              _selectedSubCategoryId = null;
+                            }
+                          }),
                           validator: (v) => v == null ? 'اختر المحفظة' : null,
                         ),
                         24.verticalSpace,
 
-                        Text(
-                          widget.type == TransactionType.expense
-                              ? 'المخصص *'
-                              : 'مصدر الدخل *',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        8.verticalSpace,
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedMainCategoryId,
-                          decoration: _dropdownDecoration(),
-                          hint: Text(
-                            widget.type == TransactionType.expense
-                                ? 'اختر المخصص'
-                                : 'اختر المصدر',
-                          ),
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down,
-                            color: Colors.grey,
-                          ),
-                          items: mainCategories.map((cat) {
-                            final remaining = _calculateRemaining(
-                              cat,
-                              planState.plan,
-                              txState.allTransactions,
-                              allCategories,
-                            );
-                            return DropdownMenuItem(
-                              value: cat.id,
-                              child: Text(
-                                widget.type == TransactionType.expense
-                                    ? '${cat.name} (متبقي: ${remaining.truncate()})'
-                                    : cat.name,
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (v) => setState(() {
-                            _selectedMainCategoryId = v;
-                            _selectedSubCategoryId = null;
-                          }),
-                          validator: (v) => v == null ? 'مطلوب' : null,
-                        ),
-                        24.verticalSpace,
-
-                        if (_selectedMainCategoryId != null) ...[
+                        if (!_isWalletTarget) ...[
                           Text(
-                            'الفئة *',
+                            widget.type == TransactionType.expense
+                                ? 'المخصص الأساسي *'
+                                : 'مصدر الدخل الأساسي *',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          8.verticalSpace,
+                          DropdownButtonFormField<String>(
+                            value: _selectedMainCategoryId,
+                            decoration: _dropdownDecoration(),
+                            hint: Text(
+                              widget.type == TransactionType.expense
+                                  ? 'اختر المخصص'
+                                  : 'اختر المصدر',
+                            ),
+                            icon: const Icon(
+                              Icons.keyboard_arrow_down,
+                              color: Colors.grey,
+                            ),
+                            items: categoryDropdownItems,
+                            onChanged: (v) => setState(() {
+                              _selectedMainCategoryId = v;
+                              _selectedSubCategoryId = null;
+                            }),
+                            validator: (v) => v == null ? 'مطلوب' : null,
+                          ),
+                          24.verticalSpace,
+                        ],
+
+                        if (parentIdForSub != null) ...[
+                          Text(
+                            'الفئة الفرعية',
                             style: TextStyle(
                               fontSize: 14.sp,
                               fontWeight: FontWeight.bold,
@@ -506,7 +622,7 @@ class _TransactionFormState extends State<_TransactionForm> {
                               child: Column(
                                 children: [
                                   Text(
-                                    'لا توجد فئات هنا',
+                                    'لا توجد فئات فرعية هنا',
                                     style: TextStyle(
                                       color: Colors.grey.shade600,
                                     ),
@@ -516,7 +632,7 @@ class _TransactionFormState extends State<_TransactionForm> {
                                     onPressed:
                                         _addNewSubCategoryForSelectedMain,
                                     icon: const Icon(Icons.add, size: 18),
-                                    label: const Text('إضافة فئة'),
+                                    label: const Text('إضافة فئة فرعية'),
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: AppColors.primaryColor,
                                       side: BorderSide(
@@ -645,6 +761,268 @@ class _TransactionFormState extends State<_TransactionForm> {
         borderRadius: BorderRadius.circular(12.r),
         borderSide: const BorderSide(color: AppColors.primaryColor),
       ),
+    );
+  }
+
+  void _showAddSubCategoryBottomSheet(
+    BuildContext context,
+    TransactionCategory parentCategory,
+  ) {
+    final icons = <String>[
+      '🚇',
+      '🚆',
+      '🚉',
+      '🚗',
+      '🚕',
+      '🚌',
+      '🚎',
+      '✈️',
+      '🚢',
+      '🚲',
+      '🛵',
+      '⛽',
+
+      '🍔',
+      '🍕',
+      '🍗',
+      '🍜',
+      '🍩',
+      '☕',
+      '🍵',
+      '🥤',
+      '🍎',
+      '🍉',
+
+      '🛒',
+      '🛍️',
+      '🎁',
+      '📦',
+      '👕',
+      '👗',
+      '👟',
+      '🏠',
+      '🛋️',
+      '🛏️',
+      '🧴',
+
+      '💡',
+      '🚰',
+      '📱',
+      '💻',
+      '📺',
+      '🔌',
+      '🏥',
+      '💊',
+      '💉',
+      '💈',
+      '✂️',
+
+      '🎮',
+      '🎲',
+      '🎬',
+      '🎧',
+      '🎸',
+      '🎫',
+      '🎪',
+      '⚽',
+      '🏀',
+      '🏊‍♂️',
+
+      '💰',
+      '💵',
+      '💳',
+      '🏦',
+      '💼',
+      '📈',
+      '📉',
+      '📚',
+      '✏️',
+      '🛠️',
+      '🎯',
+    ];
+
+    final nameCtrl = TextEditingController();
+    var selectedIcon = '🚇';
+    final selectedColor = parentCategory.color;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                left: 20.w,
+                right: 20.w,
+                top: 24.h,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const SizedBox(width: 24),
+                        Column(
+                          children: [
+                            Text(
+                              'إضافة فئة جديدة',
+                              style: TextStyle(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'أضف فئة جديدة لتصنيف مصروفاتك',
+                              style: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 12.sp,
+                              ),
+                            ),
+                          ],
+                        ),
+                        InkWell(
+                          onTap: () => Navigator.pop(ctx),
+                          child: const Icon(Icons.close, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                    24.verticalSpace,
+
+                    Text(
+                      'اسم الفئة',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14.sp,
+                      ),
+                    ),
+                    8.verticalSpace,
+                    TextFormField(
+                      controller: nameCtrl,
+                      decoration: InputDecoration(
+                        hintText: 'مثال: مواصلات المترو',
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: const BorderSide(color: Colors.black12),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: const BorderSide(color: Colors.black12),
+                        ),
+                      ),
+                    ),
+                    20.verticalSpace,
+
+                    Text(
+                      'الأيقونة',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14.sp,
+                      ),
+                    ),
+                    12.verticalSpace,
+                    Container(
+                      height: 300.h,
+                      padding: EdgeInsets.all(12.r),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(color: Colors.black12),
+                      ),
+                      child: GridView.builder(
+                        shrinkWrap: true,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 6,
+                          crossAxisSpacing: 8.w,
+                          mainAxisSpacing: 8.h,
+                        ),
+                        itemCount: icons.length,
+                        itemBuilder: (context, index) {
+                          final icon = icons[index];
+                          final isSelected = icon == selectedIcon;
+                          return GestureDetector(
+                            onTap: () => setState(() => selectedIcon = icon),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? selectedColor.withAlpha(40)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(12.r),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? selectedColor
+                                      : Colors.black12,
+                                  width: isSelected ? 2 : 1,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  icon,
+                                  style: TextStyle(fontSize: 24.sp),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    32.verticalSpace,
+
+                    CustomPrimaryButton(
+                      onPressed: () {
+                        if (nameCtrl.text.isNotEmpty) {
+                          final fullName = '$selectedIcon ${nameCtrl.text}';
+
+                          final newCategory = TransactionCategory(
+                            id: const Uuid().v4(),
+                            name: fullName,
+                            type: parentCategory.type,
+                            parentId: parentCategory.id,
+
+                            colorValue: selectedColor.value,
+                          );
+
+                          context.read<TransactionCubit>().addCategory(
+                            newCategory,
+                          );
+                          Navigator.pop(ctx);
+                        }
+                      },
+                      text: 'إضافة',
+                    ),
+                    10.verticalSpace,
+                    OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
+                        side: const BorderSide(color: Colors.black12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                      ),
+                      child: const Text(
+                        'إلغاء',
+                        style: TextStyle(color: Colors.black87, fontSize: 16),
+                      ),
+                    ),
+                    20.verticalSpace,
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

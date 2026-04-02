@@ -3,6 +3,7 @@ import 'package:opration/core/router/app_routes.dart';
 import 'package:opration/features/Settings/manage_categories_screen.dart';
 import 'package:opration/features/Settings/menu_screen.dart';
 import 'package:opration/features/Settings/more_page.dart';
+import 'package:opration/features/Settings/recurring_transactions_screen.dart';
 import 'package:opration/features/auth/presentation/views/login_view.dart';
 import 'package:opration/features/debt/presentation/screens/debts_view.dart';
 import 'package:opration/features/goals/presentation/screens/financial_goals_screen.dart';
@@ -112,6 +113,11 @@ class RouterGenerationConfig {
         path: AppRoutes.transferHistoryScreen,
         name: AppRoutes.transferHistoryScreen,
         builder: (context, state) => const TransferHistoryScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.recurringTransactionsScreen,
+        name: AppRoutes.recurringTransactionsScreen,
+        builder: (context, state) => const RecurringTransactionsScreen(),
       ),
     ],
   );

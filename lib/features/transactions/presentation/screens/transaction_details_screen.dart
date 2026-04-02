@@ -10,6 +10,7 @@ import 'package:opration/core/shared_widgets/page_header.dart';
 import 'package:opration/core/theme/colors.dart';
 import 'package:opration/core/theme/text_style.dart';
 import 'package:opration/features/main_layout/cubit/main_layout_cubit.dart';
+import 'package:opration/features/monthly_plan/presentation/controllers/monthly_plan_cubit/monthly_plan_cubit.dart';
 import 'package:opration/features/transactions/domain/entities/transaction.dart';
 import 'package:opration/features/transactions/domain/entities/transaction_category.dart';
 import 'package:opration/features/transactions/presentation/controllers/transactions_cubit/transactions_cubit.dart';
@@ -28,10 +29,8 @@ class TransactionDetailsScreen extends StatelessWidget {
           isLeading: false,
           heightBar: 130.h,
           title: 'مصاريفك وفلوسك',
-
           bottom: Container(
             height: 50.h,
-
             decoration: BoxDecoration(
               border: Border.all(
                 color: AppColors.white,
@@ -83,7 +82,6 @@ class TransactionDetailsScreen extends StatelessWidget {
                           );
                         },
                       ),
-
                       if (pendingCount > 0)
                         Positioned(
                           top: 8.h,
@@ -123,7 +121,6 @@ class TransactionDetailsScreen extends StatelessWidget {
               children: [
                 4.verticalSpace,
                 _FilterControlBar(),
-
                 if (state.isLoading)
                   Padding(
                     padding: EdgeInsets.symmetric(vertical: 8.r),
@@ -192,7 +189,6 @@ class _TransactionDetailsPage extends StatelessWidget {
           type: type,
         ),
         4.verticalSpace,
-
         _CategoryTransactionList(
           transactions: transactionsForType,
           categories: state.allCategories,
@@ -225,15 +221,18 @@ class _CategoryTransactionList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final groupedTransactions = <String, List<Transaction>>{};
+
     for (final transaction in transactions) {
       final category = categories.firstWhere(
-        (c) => c.id == transaction.categoryId,
-        orElse: () => TransactionCategory(
-          id: '',
-          name: 'في المجهول',
-          colorValue: 0,
-          type: type,
-        ),
+        (c) => c.id == transaction.allocationId,
+        orElse: () {
+          return TransactionCategory(
+            id: '',
+            name: 'في المجهول',
+            colorValue: 0,
+            type: type,
+          );
+        },
       );
 
       final mainCategoryId = category.parentId ?? category.id;
@@ -362,7 +361,7 @@ class _TransactionListItem extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('متأكد؟'),
-        content: const Text('أنت كدا هتمسح العملية دي كلها'),
+        content: const Text('أنت كدا هتمسح العملية دي كلها وتأثيرها هيتعكس.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -376,10 +375,17 @@ class _TransactionListItem extends StatelessWidget {
               ),
             ),
             onPressed: () {
-              context.read<TransactionCubit>().deleteTransaction(
-                transaction.id,
-              );
               ctx.pop();
+
+              context
+                  .read<TransactionCubit>()
+                  .deleteTransaction(transaction.id)
+                  .then((_) {
+                    if (context.mounted) {
+                      context.read<WalletCubit>().loadWallets();
+                      context.read<MonthlyPlanCubit>().refreshBudgetSummary();
+                    }
+                  });
             },
           ),
         ],
@@ -393,7 +399,7 @@ class _TransactionListItem extends StatelessWidget {
     final color = isIncome ? Colors.green : Colors.red;
 
     final specificCategory = allCategories.firstWhere(
-      (c) => c.id == transaction.categoryId,
+      (c) => c.id == transaction.allocationId,
       orElse: () => TransactionCategory(
         id: '',
         name: 'غير معروف',
@@ -604,7 +610,7 @@ class _FilterControlBar extends StatelessWidget {
 
     var wallets = <Wallet>[];
     if (walletState is WalletLoaded) {
-      wallets = walletState.wallets;
+      wallets = walletState.wallets.toList();
     }
 
     return Padding(
@@ -858,7 +864,7 @@ class _PieChartCard extends StatelessWidget {
 
     for (final t in transactions) {
       final category = categories.firstWhere(
-        (c) => c.id == t.categoryId,
+        (c) => c.id == t.allocationId,
         orElse: () => TransactionCategory(
           id: '',
           name: 'في المجهول',
@@ -876,25 +882,31 @@ class _PieChartCard extends StatelessWidget {
       );
     }
 
+    final sortedEntries = expenseByMainCategory.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
     return Card(
       child: Padding(
         padding: EdgeInsets.all(16.r),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'فلوسك على الشارت',
+              'تحليل مصاريفك',
               style: AppTextStyle.style18W600.copyWith(
                 color: AppColors.primaryColor,
               ),
             ),
+
             20.verticalSpace,
+
             SizedBox(
               height: 200.h,
               child: PieChart(
                 PieChartData(
                   sectionsSpace: 2,
                   centerSpaceRadius: 40.r,
-                  sections: expenseByMainCategory.entries.map((entry) {
+                  sections: sortedEntries.map((entry) {
                     final mainCategory = categories.firstWhere(
                       (c) => c.id == entry.key,
                       orElse: () => TransactionCategory(
@@ -912,15 +924,74 @@ class _PieChartCard extends StatelessWidget {
                     return PieChartSectionData(
                       color: mainCategory.color,
                       value: entry.value,
-                      title: '${percentage.truncate()}%',
+                      title: '${percentage.toStringAsFixed(1)}%',
                       radius: 60.r,
                       titleStyle: AppTextStyle.style12Bold.copyWith(
-                        color: AppColors.white,
+                        color: Colors.white,
                       ),
                     );
                   }).toList(),
                 ),
               ),
+            ),
+
+            20.verticalSpace,
+
+            Column(
+              children: sortedEntries.map((entry) {
+                final mainCategory = categories.firstWhere(
+                  (c) => c.id == entry.key,
+                  orElse: () => TransactionCategory(
+                    id: '',
+                    name: 'في المجهول',
+                    colorValue: Colors.grey.value,
+                    type: TransactionType.expense,
+                  ),
+                );
+
+                final percentage = totalExpense > 0
+                    ? (entry.value / totalExpense) * 100
+                    : 0;
+
+                return Padding(
+                  padding: EdgeInsets.symmetric(vertical: 6.h),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 12.w,
+                        height: 12.w,
+                        decoration: BoxDecoration(
+                          color: mainCategory.color,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+
+                      8.horizontalSpace,
+
+                      Expanded(
+                        child: Text(
+                          mainCategory.name,
+                          style: AppTextStyle.style12W600,
+                        ),
+                      ),
+
+                      Text(
+                        '${entry.value.truncate()} ج.م',
+                        style: AppTextStyle.style12W600,
+                      ),
+
+                      8.horizontalSpace,
+
+                      Text(
+                        '${percentage.toStringAsFixed(1)}%',
+                        style: AppTextStyle.style12W600.copyWith(
+                          color: AppColors.primaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
             ),
           ],
         ),

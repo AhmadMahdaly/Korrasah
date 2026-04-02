@@ -13,6 +13,7 @@ import 'package:opration/core/theme/text_style.dart';
 import 'package:opration/core/theme/themes.dart';
 import 'package:opration/features/monthly_plan/presentation/controllers/monthly_plan_cubit/monthly_plan_cubit.dart';
 import 'package:opration/features/transactions/domain/entities/transaction.dart';
+import 'package:opration/features/transactions/domain/entities/transaction_category.dart';
 import 'package:opration/features/transactions/presentation/controllers/transactions_cubit/transactions_cubit.dart';
 import 'package:opration/features/wallets/domain/entities/wallet.dart';
 import 'package:opration/features/wallets/presentation/cubit/wallet_cubit.dart';
@@ -28,9 +29,7 @@ class WalletsScreen extends StatelessWidget {
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       floatingActionButton: SpeedDial(
         backgroundColor: AppColors.primaryColor,
-        iconTheme: const IconThemeData(
-          color: AppColors.white,
-        ),
+        iconTheme: const IconThemeData(color: AppColors.white),
         icon: Icons.add,
         activeIcon: Icons.close,
         spacing: 4.h,
@@ -45,9 +44,7 @@ class WalletsScreen extends StatelessWidget {
             },
           ),
           SpeedDialChild(
-            child: const Icon(
-              Icons.swap_horiz,
-            ),
+            child: const Icon(Icons.swap_horiz),
             label: 'تحويل',
             onTap: () {
               final state = context.read<WalletCubit>().state;
@@ -56,7 +53,6 @@ class WalletsScreen extends StatelessWidget {
               }
             },
           ),
-
           SpeedDialChild(
             child: const Icon(Icons.add),
             label: 'إضافة حساب',
@@ -85,76 +81,54 @@ class WalletsScreen extends StatelessWidget {
             );
 
             final actualWallets = walletState.wallets
-                .where(
-                  (w) =>
-                      w.type != WalletType.savings &&
-                      w.type != WalletType.mainBudget,
-                )
+                .where((w) => w.type != WalletType.savings)
                 .toList();
 
             return BlocBuilder<MonthlyPlanCubit, MonthlyPlanState>(
               builder: (context, planState) {
                 final currentMonth = planState.currentMonth;
 
-                return BlocBuilder<TransactionCubit, TransactionState>(
-                  builder: (context, txState) {
-                    var monthlyTotalIncome = 0.0;
-                    var monthlyTotalExpense = 0.0;
+                final monthlyTotalIncome =
+                    planState.summary?.totalIncome ?? 0.0;
+                final monthlyTotalExpense =
+                    planState.summary?.totalExpense ?? 0.0;
+                final netRemaining = planState.summary?.netRemaining ?? 0.0;
 
-                    for (final tx in txState.allTransactions) {
-                      if (tx.date.year == currentMonth.year &&
-                          tx.date.month == currentMonth.month) {
-                        if (tx.type == TransactionType.income) {
-                          monthlyTotalIncome += tx.amount;
-                        } else if (tx.type == TransactionType.expense) {
-                          monthlyTotalExpense += tx.amount;
-                        }
-                      }
-                    }
-
-                    final netRemaining =
-                        monthlyTotalIncome - monthlyTotalExpense;
-
-                    return Column(
-                      children: [
-                        _buildMonthSelector(context, currentMonth),
-
-                        Expanded(
-                          child: SingleChildScrollView(
-                            padding: EdgeInsets.all(16.r),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildBudgetAggregatorCard(
-                                  context: context,
-                                  income: monthlyTotalIncome,
-                                  expense: monthlyTotalExpense,
-                                  netRemaining: netRemaining,
-                                  savingsWalletId: savingsWallet.id,
-                                  actualWallets: actualWallets,
-                                  monthName: _getMonthArabicName(
-                                    currentMonth.month,
-                                  ),
-                                ),
-                                16.verticalSpace,
-
-                                _buildSavingsCard(
-                                  savingsWallet,
-                                  const Color(0xFFFF7A00),
-                                ),
-                                24.verticalSpace,
-
-                                _buildActualWalletsSection(
-                                  context,
-                                  actualWallets,
-                                ),
-                              ],
+                return Column(
+                  children: [
+                    _buildMonthSelector(context, currentMonth),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.all(16.r),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildBudgetAggregatorCard(
+                              context: context,
+                              income: monthlyTotalIncome,
+                              expense: monthlyTotalExpense,
+                              netRemaining: netRemaining,
+                              savingsWalletId: savingsWallet.id,
+                              actualWallets: actualWallets,
+                              monthName: _getMonthArabicName(
+                                currentMonth.month,
+                              ),
                             ),
-                          ),
+                            16.verticalSpace,
+                            _buildSavingsCard(
+                              savingsWallet,
+                              const Color(0xFFFF7A00),
+                            ),
+                            24.verticalSpace,
+                            _buildActualWalletsSection(
+                              context,
+                              actualWallets,
+                            ),
+                          ],
                         ),
-                      ],
-                    );
-                  },
+                      ),
+                    ),
+                  ],
                 );
               },
             );
@@ -180,7 +154,6 @@ class WalletsScreen extends StatelessWidget {
           IconButton(
             icon: Icon(
               Icons.arrow_back_ios_new_rounded,
-
               size: 18.r,
               color: AppColors.primaryTextColor,
             ),
@@ -300,7 +273,6 @@ class WalletsScreen extends StatelessWidget {
             ],
           ),
           16.verticalSpace,
-
           if (netRemaining > 0)
             SizedBox(
               width: double.infinity,
@@ -468,7 +440,6 @@ class WalletsScreen extends StatelessWidget {
             return Dismissible(
               key: Key(wallet.id),
               direction: DismissDirection.endToStart,
-
               background: Container(
                 alignment: Alignment.centerLeft,
                 padding: EdgeInsets.symmetric(horizontal: 20.w),
@@ -482,7 +453,6 @@ class WalletsScreen extends StatelessWidget {
                   size: 30.r,
                 ),
               ),
-
               confirmDismiss: (direction) async {
                 return showDialog(
                   context: context,
@@ -496,7 +466,7 @@ class WalletsScreen extends StatelessWidget {
                         style: TextStyle(color: Colors.red),
                       ),
                       content: Text(
-                        'هل أنت متأكد من حذف محفظة "${wallet.name}"؟\nسيتم إزالة رصيدها من الميزانية وحذف معاملاتها.',
+                        'هل أنت متأكد من حذف محفظة "${wallet.name}"؟\nسيتم إزالة رصيدها، وحذف الفئة (Category) المرتبطة بها في العمليات.',
                       ),
                       actions: [
                         TextButton(
@@ -521,19 +491,20 @@ class WalletsScreen extends StatelessWidget {
                   },
                 );
               },
-
               onDismissed: (direction) {
-                context.read<WalletCubit>().deleteWallet(wallet.id);
+                context.read<WalletCubit>().deleteWallet(wallet.id).then((_) {
+                  context.read<TransactionCubit>().deleteCategory(wallet.id);
+                  context.read<MonthlyPlanCubit>().refreshBudgetSummary();
+                });
 
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('تم حذف المحفظة "${wallet.name}" بنجاح'),
+                  const SnackBar(
+                    content: Text('تم حذف المحفظة والفئة المرتبطة بنجاح'),
                     backgroundColor: Colors.red,
-                    duration: const Duration(seconds: 2),
+                    duration: Duration(seconds: 2),
                   ),
                 );
               },
-
               child: InkWell(
                 onTap: () =>
                     _showAddEditSideWalletDialog(context, wallet: wallet),
@@ -692,7 +663,6 @@ class WalletsScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   20.verticalSpace,
-
                   TextFormField(
                     controller: amountCtrl,
                     decoration: const InputDecoration(
@@ -702,7 +672,6 @@ class WalletsScreen extends StatelessWidget {
                     keyboardType: TextInputType.number,
                   ),
                   16.verticalSpace,
-
                   DropdownButtonFormField<String>(
                     initialValue: selectedSourceWalletId,
                     decoration: const InputDecoration(
@@ -721,16 +690,32 @@ class WalletsScreen extends StatelessWidget {
                         setState(() => selectedSourceWalletId = v),
                   ),
                   24.verticalSpace,
-
                   CustomPrimaryButton(
                     onPressed: () {
                       final amount = double.tryParse(amountCtrl.text) ?? 0.0;
                       if (selectedSourceWalletId != null && amount > 0) {
-                        context.read<WalletCubit>().transferBalance(
-                          selectedSourceWalletId!,
-                          savingsWalletId,
-                          amount,
+                        final transferTx = Transaction(
+                          id: const Uuid().v4(),
+                          amount: amount,
+                          date: DateTime.now(),
+                          type: TransactionType.transfer,
+                          fromWalletId: selectedSourceWalletId,
+                          toWalletId: savingsWalletId,
+                          note: 'ترحيل فائض يدوي',
                         );
+
+                        context
+                            .read<TransactionCubit>()
+                            .addTransaction(transferTx)
+                            .then((_) {
+                              if (context.mounted) {
+                                context.read<WalletCubit>().loadWallets();
+                                context
+                                    .read<MonthlyPlanCubit>()
+                                    .refreshBudgetSummary();
+                              }
+                            });
+
                         Navigator.pop(ctx);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -793,6 +778,7 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
   void initState() {
     super.initState();
     final w = widget.wallet;
+    _selectedColor = w != null ? Color(w.colorValue!) : Colors.blue;
     _nameController = TextEditingController(text: w?.name);
     _balanceController = TextEditingController(
       text: w?.balance.toString() ?? '',
@@ -814,6 +800,7 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
     _sourceWalletId = w?.sourceWalletId;
   }
 
+  Color _selectedColor = Colors.blue;
   @override
   Widget build(BuildContext context) {
     final planState = context.read<MonthlyPlanCubit>().state;
@@ -834,15 +821,59 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                widget.wallet == null ? 'إضافة محفظة جانبية' : 'تعديل محفظة',
+                widget.wallet == null
+                    ? 'إضافة محفظة (تُنشئ فئة تلقائياً)'
+                    : 'تعديل محفظة',
                 style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
-              20.verticalSpace,
+              10.verticalSpace,
 
+              Text(
+                'اختار لون المحفظة',
+                style: AppTextStyle.style12W600,
+              ),
+
+              10.verticalSpace,
+
+              Wrap(
+                spacing: 8,
+                children:
+                    [
+                      Colors.blue,
+                      Colors.green,
+                      Colors.red,
+                      Colors.orange,
+                      Colors.purple,
+                      Colors.teal,
+                      Colors.amber,
+                      Colors.indigo,
+                    ].map((color) {
+                      final isSelected = _selectedColor.value == color.value;
+
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedColor = color),
+                        child: Container(
+                          width: 32.w,
+                          height: 32.w,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected
+                                  ? Colors.black
+                                  : Colors.transparent,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+              ),
+              20.verticalSpace,
               CustomPrimaryTextfield(
                 controller: _nameController,
-                text: 'اسم المحفظة',
+                text: 'اسم المحفظة (ستصبح فئة أيضاً)',
                 validator: (v) => v!.isEmpty ? 'مطلوب' : null,
               ),
               10.verticalSpace,
@@ -852,7 +883,6 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
                 keyboardType: TextInputType.number,
               ),
               10.verticalSpace,
-
               Row(
                 children: [
                   Expanded(
@@ -866,7 +896,7 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
                   ),
                   Expanded(
                     child: RadioListTile<bool>(
-                      title: const Text('مرتبطة'),
+                      title: const Text('مرتبطة بالخطة'),
                       value: true,
                       groupValue: _isLinkedToBudget,
                       onChanged: (val) =>
@@ -875,7 +905,6 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
                   ),
                 ],
               ),
-
               if (_isLinkedToBudget) ...[
                 CustomPrimaryTextfield(
                   controller: _monthlyAmountController,
@@ -889,7 +918,6 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
                   keyboardType: TextInputType.number,
                 ),
                 10.verticalSpace,
-
                 DropdownButtonFormField<ExecutionType>(
                   initialValue: _executionType,
                   decoration: const InputDecoration(labelText: 'نوع التنفيذ'),
@@ -910,7 +938,6 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
                   onChanged: (v) => setState(() => _executionType = v!),
                 ),
                 10.verticalSpace,
-
                 DropdownButtonFormField<String>(
                   initialValue: _sourceWalletId,
                   decoration: const InputDecoration(labelText: 'مصدر الفلوس'),
@@ -923,11 +950,10 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
                   onChanged: (v) => setState(() => _sourceWalletId = v),
                 ),
               ],
-
               20.verticalSpace,
               CustomPrimaryButton(
                 onPressed: _save,
-                text: 'حفظ',
+                text: 'حفظ المحفظة (والفئة)',
               ),
             ],
           ),
@@ -939,15 +965,14 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
   void _save() {
     if (_formKey.currentState!.validate()) {
       final isNewWallet = widget.wallet == null;
-
       final newWalletId = widget.wallet?.id ?? const Uuid().v4();
       final initialBalance = double.tryParse(_balanceController.text) ?? 0.0;
 
       final newWallet = Wallet(
         id: newWalletId,
         name: _nameController.text,
-        balance: initialBalance,
-        isMain: false,
+        balance: isNewWallet ? 0.0 : initialBalance,
+        colorValue: _selectedColor.value, // 👈 أهم سطر
         type: _isLinkedToBudget
             ? WalletType.sideLinked
             : WalletType.sideIndependent,
@@ -961,25 +986,43 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
         sourceWalletId: _isLinkedToBudget ? _sourceWalletId : null,
       );
 
+      final linkedCategory = TransactionCategory(
+        id: newWalletId,
+        name: 'عمليات: ${_nameController.text}',
+        type: TransactionType.expense,
+        colorValue: _selectedColor.value, // 👈 نفس اللون
+        targetWalletId: newWalletId,
+      );
       if (isNewWallet) {
-        context.read<WalletCubit>().addWallet(newWallet);
+        context.read<WalletCubit>().addWallet(newWallet).then((_) {
+          context.read<TransactionCubit>().addCategory(linkedCategory);
 
-        if (initialBalance > 0) {
-          final initialTransaction = Transaction(
-            id: const Uuid().v4(),
-            walletId: newWalletId,
-            amount: initialBalance,
-            type: TransactionType.income,
-            date: DateTime.now(),
+          if (initialBalance > 0) {
+            final initialTransaction = Transaction(
+              id: const Uuid().v4(),
+              walletId: newWalletId,
+              amount: initialBalance,
+              type: TransactionType.income,
+              date: DateTime.now(),
+              note: 'رصيد افتتاح المحفظة',
+            );
 
-            note: 'رصيد إضافة المحفظة',
-            categoryId: 'initial_balance_category_id',
-          );
-
-          context.read<TransactionCubit>().addTransaction(initialTransaction);
-        }
+            context
+                .read<TransactionCubit>()
+                .addTransaction(initialTransaction)
+                .then((_) {
+                  if (mounted) {
+                    context.read<WalletCubit>().loadWallets();
+                  }
+                });
+          }
+        });
       } else {
-        context.read<WalletCubit>().updateWallet(newWallet);
+        context.read<WalletCubit>().updateWallet(newWallet).then((_) {
+          context.read<TransactionCubit>().updateCategory(linkedCategory);
+
+          context.read<MonthlyPlanCubit>().refreshBudgetSummary();
+        });
       }
 
       Navigator.pop(context);
@@ -988,6 +1031,8 @@ class _AddSideWalletFormState extends State<_AddSideWalletForm> {
 }
 
 void _showTransferDialog(BuildContext context, List<Wallet> wallets) {
+  final availableWallets = wallets;
+
   String? fromWalletId;
   String? toWalletId;
   final amountController = TextEditingController();
@@ -1024,7 +1069,7 @@ void _showTransferDialog(BuildContext context, List<Wallet> wallets) {
                   children: [
                     CustomDropdownButtonFormField<String>(
                       hintText: 'من محفظة',
-                      items: wallets
+                      items: availableWallets
                           .map(
                             (w) => DropdownMenuItem(
                               value: w.id,
@@ -1038,10 +1083,9 @@ void _showTransferDialog(BuildContext context, List<Wallet> wallets) {
                       onChanged: (v) => fromWalletId = v,
                       validator: (v) => v == null ? 'حدد المحفظة' : null,
                     ),
-
                     CustomDropdownButtonFormField<String>(
                       hintText: 'إلى محفظة',
-                      items: wallets
+                      items: availableWallets
                           .map(
                             (w) => DropdownMenuItem(
                               value: w.id,
@@ -1052,7 +1096,6 @@ void _showTransferDialog(BuildContext context, List<Wallet> wallets) {
                       onChanged: (v) => toWalletId = v,
                       validator: (v) => v == null ? 'حدد المحفظة' : null,
                     ),
-
                     CustomPrimaryTextfield(
                       controller: amountController,
                       text: 'المبلغ المراد تحويله',
@@ -1103,11 +1146,28 @@ void _showTransferDialog(BuildContext context, List<Wallet> wallets) {
                             return;
                           }
 
-                          context.read<WalletCubit>().transferBalance(
-                            fromWalletId!,
-                            toWalletId!,
-                            double.parse(amountController.text),
+                          final transferTx = Transaction(
+                            id: const Uuid().v4(),
+                            amount: double.parse(amountController.text),
+                            date: DateTime.now(),
+                            type: TransactionType.transfer,
+                            fromWalletId: fromWalletId,
+                            toWalletId: toWalletId,
+                            note: 'تحويل يدوي',
                           );
+
+                          context
+                              .read<TransactionCubit>()
+                              .addTransaction(transferTx)
+                              .then((_) {
+                                if (context.mounted) {
+                                  context.read<WalletCubit>().loadWallets();
+                                  context
+                                      .read<MonthlyPlanCubit>()
+                                      .refreshBudgetSummary();
+                                }
+                              });
+
                           Navigator.pop(ctx);
                         }
                       },

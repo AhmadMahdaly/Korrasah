@@ -425,22 +425,16 @@ class ShoppingListView extends StatelessWidget {
                                   final transaction = Transaction(
                                     id: const Uuid().v4(),
                                     amount: actualPrice,
-                                    categoryId: finalCategoryId,
+                                    allocationId: finalCategoryId,
                                     date: DateTime.now(),
                                     type: TransactionType.expense,
-                                    walletId: selectedWalletId!,
+                                    walletId: selectedWalletId,
                                     note: 'مشتريات مخططة: ${item.name}',
                                   );
                                   context
                                       .read<TransactionCubit>()
                                       .addTransaction(
                                         transaction,
-                                      );
-                                  context
-                                      .read<WalletCubit>()
-                                      .updateWalletBalance(
-                                        selectedWalletId!,
-                                        -actualPrice,
                                       );
 
                                   shoppingCubit.markAsBought(

@@ -1,3 +1,4 @@
+import 'package:opration/features/transactions/domain/entities/transaction_category.dart';
 import 'package:opration/features/wallets/domain/entities/wallet.dart';
 
 class WalletModel extends Wallet {
@@ -5,12 +6,14 @@ class WalletModel extends Wallet {
     required super.id,
     required super.name,
     required super.balance,
-    required super.isMain,
     required super.type,
+    required super.colorValue,
     super.monthlyAmount,
     super.executionDay,
     super.executionType,
     super.sourceWalletId,
+    super.recurrenceType = RecurrenceType.none,
+    super.selectedDays = const [],
   });
 
   factory WalletModel.fromEntity(Wallet wallet) {
@@ -18,12 +21,14 @@ class WalletModel extends Wallet {
       id: wallet.id,
       name: wallet.name,
       balance: wallet.balance,
-      isMain: wallet.isMain,
       type: wallet.type,
       monthlyAmount: wallet.monthlyAmount,
       executionDay: wallet.executionDay,
       executionType: wallet.executionType,
       sourceWalletId: wallet.sourceWalletId,
+      recurrenceType: wallet.recurrenceType,
+      selectedDays: wallet.selectedDays,
+      colorValue: wallet.colorValue,
     );
   }
 
@@ -32,13 +37,13 @@ class WalletModel extends Wallet {
       id: json['id'].toString(),
       name: json['name'].toString(),
       balance: (json['balance'] as num).toDouble(),
-      isMain: json['isMain'] as bool? ?? false,
+      colorValue: json['colorValue'] as int,
+
       type: WalletType.values.firstWhere(
-        (e) => e.toString() == json['type'],
-        orElse: () => json['isMain'] == true
-            ? WalletType.mainBudget
-            : WalletType.sideIndependent,
+        (e) => e.toString() == json['type'] || e.name == json['type'],
+        orElse: () => WalletType.sideIndependent,
       ),
+
       monthlyAmount: json['monthlyAmount'] != null
           ? (json['monthlyAmount'] as num).toDouble()
           : null,
@@ -48,6 +53,12 @@ class WalletModel extends Wallet {
         orElse: () => ExecutionType.none,
       ),
       sourceWalletId: json['sourceWalletId']?.toString(),
+
+      recurrenceType: RecurrenceType.values.firstWhere(
+        (e) => e.name == json['recurrenceType'],
+        orElse: () => RecurrenceType.none,
+      ),
+      selectedDays: (json['selectedDays'] as List<dynamic>?)?.cast<int>() ?? [],
     );
   }
 
@@ -56,12 +67,14 @@ class WalletModel extends Wallet {
       'id': id,
       'name': name,
       'balance': balance,
-      'isMain': isMain,
-      'type': type.toString(),
+      'type': type.name,
       'monthlyAmount': monthlyAmount,
       'executionDay': executionDay,
       'executionType': executionType.toString(),
       'sourceWalletId': sourceWalletId,
+      'recurrenceType': recurrenceType.name,
+      'selectedDays': selectedDays,
+      'colorValue': colorValue,
     };
   }
 }

@@ -10,6 +10,7 @@ import 'package:uuid/uuid.dart';
 
 abstract class TransactionLocalDataSource {
   Future<List<Transaction>> getTransactions();
+  Future<Transaction> getTransactionById(String id);
   Future<void> saveTransaction(Transaction transaction);
   Future<void> updateTransaction(Transaction transaction);
   Future<void> deleteTransaction(String transactionId);
@@ -35,9 +36,11 @@ class TransactionLocalDataSourceImpl implements TransactionLocalDataSource {
     required this.sharedPreferences,
     required this.uuid,
   });
+
   final SharedPreferences sharedPreferences;
   final Uuid uuid;
 
+  // دالة مساعدة لفك تشفير القوائم وتجنب التكرار
   Future<List<Map<String, dynamic>>> _getDecodedList(String key) async {
     final jsonString = sharedPreferences.getString(key);
     if (jsonString != null && jsonString.isNotEmpty) {
@@ -46,12 +49,63 @@ class TransactionLocalDataSourceImpl implements TransactionLocalDataSource {
     return [];
   }
 
+  // دالة مساعدة لتشفير وحفظ القوائم
   Future<void> _saveEncodedList(
     String key,
     List<Map<String, dynamic>> list,
   ) async {
     await sharedPreferences.setString(key, json.encode(list));
   }
+
+  // ==========================================
+  // قسم المعاملات (Transactions)
+  // ==========================================
+
+  @override
+  Future<List<Transaction>> getTransactions() async {
+    final list = await _getDecodedList(CacheKeys.cachedTransactions);
+    return list.map(Transaction.fromJson).toList();
+  }
+
+  @override
+  Future<Transaction> getTransactionById(String id) async {
+    final list = await _getDecodedList(CacheKeys.cachedTransactions);
+    final jsonMap = list.firstWhere(
+      (t) => t['id'] == id,
+      orElse: () => throw Exception('المعاملة غير موجودة في قاعدة البيانات'),
+    );
+    return Transaction.fromJson(jsonMap);
+  }
+
+  @override
+  Future<void> saveTransaction(Transaction transaction) async {
+    final list = await _getDecodedList(CacheKeys.cachedTransactions);
+    list.add(transaction.toJson());
+    await _saveEncodedList(CacheKeys.cachedTransactions, list);
+  }
+
+  @override
+  Future<void> updateTransaction(Transaction transaction) async {
+    final list = await _getDecodedList(CacheKeys.cachedTransactions);
+    final index = list.indexWhere((t) => t['id'] == transaction.id);
+    if (index != -1) {
+      list[index] = transaction.toJson();
+      await _saveEncodedList(CacheKeys.cachedTransactions, list);
+    } else {
+      throw Exception('لا يمكن تحديث معاملة غير موجودة');
+    }
+  }
+
+  @override
+  Future<void> deleteTransaction(String transactionId) async {
+    final list = await _getDecodedList(CacheKeys.cachedTransactions);
+    list.removeWhere((t) => t['id'] == transactionId);
+    await _saveEncodedList(CacheKeys.cachedTransactions, list);
+  }
+
+  // ==========================================
+  // قسم الفئات / المخصصات (Categories / Allocations)
+  // ==========================================
 
   @override
   Future<List<TransactionCategory>> getCategories() async {
@@ -87,44 +141,20 @@ class TransactionLocalDataSourceImpl implements TransactionLocalDataSource {
 
   @override
   Future<void> deleteCategory(String categoryId) async {
+    // 1. مسح الفئة
     final list = await _getDecodedList(CacheKeys.cachedCategories);
     list.removeWhere((c) => c['id'] == categoryId);
     await _saveEncodedList(CacheKeys.cachedCategories, list);
 
+    // 2. مسح المعاملات المرتبطة بهذه الفئة (Cascading Delete)
     final transactions = await _getDecodedList(CacheKeys.cachedTransactions);
     transactions.removeWhere((t) => t['categoryId'] == categoryId);
     await _saveEncodedList(CacheKeys.cachedTransactions, transactions);
   }
 
-  @override
-  Future<List<Transaction>> getTransactions() async {
-    final list = await _getDecodedList(CacheKeys.cachedTransactions);
-    return list.map(Transaction.fromJson).toList();
-  }
-
-  @override
-  Future<void> saveTransaction(Transaction transaction) async {
-    final list = await _getDecodedList(CacheKeys.cachedTransactions);
-    list.add(transaction.toJson());
-    await _saveEncodedList(CacheKeys.cachedTransactions, list);
-  }
-
-  @override
-  Future<void> updateTransaction(Transaction transaction) async {
-    final list = await _getDecodedList(CacheKeys.cachedTransactions);
-    final index = list.indexWhere((t) => t['id'] == transaction.id);
-    if (index != -1) {
-      list[index] = transaction.toJson();
-      await _saveEncodedList(CacheKeys.cachedTransactions, list);
-    }
-  }
-
-  @override
-  Future<void> deleteTransaction(String transactionId) async {
-    final list = await _getDecodedList(CacheKeys.cachedTransactions);
-    list.removeWhere((t) => t['id'] == transactionId);
-    await _saveEncodedList(CacheKeys.cachedTransactions, list);
-  }
+  // ==========================================
+  // قسم الفلترة وإعدادات التاريخ
+  // ==========================================
 
   @override
   Future<void> saveDateFilter(
@@ -172,6 +202,10 @@ class TransactionLocalDataSourceImpl implements TransactionLocalDataSource {
     };
   }
 
+  // ==========================================
+  // قسم الخطة الشهرية (Monthly Plan)
+  // ==========================================
+
   String _getPlanCacheKey(String yearMonth) => 'monthly_plan_$yearMonth';
 
   @override
@@ -187,6 +221,7 @@ class TransactionLocalDataSourceImpl implements TransactionLocalDataSource {
       plan = MonthlyPlan(id: yearMonth);
     }
 
+    // التأكد من وجود الدخل الافتراضي (الراتب)
     if (!plan.incomes.any((i) => i.id == 'default_salary')) {
       final defaultSalary = PlannedIncome(
         id: 'default_salary',

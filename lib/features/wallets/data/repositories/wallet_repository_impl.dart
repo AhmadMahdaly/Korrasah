@@ -10,37 +10,63 @@ class WalletRepositoryImpl implements WalletRepository {
     required this.localDataSource,
     required this.uuid,
   });
+
   final WalletLocalDataSource localDataSource;
   final Uuid uuid;
+
   @override
   Future<List<Wallet>> getWallets() async {
     final walletModels = await localDataSource.getWallets();
-
     return List<Wallet>.from(walletModels);
+  }
+
+  @override
+  Future<Wallet> getWalletById(String id) async {
+    final currentWallets = await localDataSource.getWallets();
+    final wallet = currentWallets.firstWhere(
+      (w) => w.id == id,
+      orElse: () => throw Exception('المحفظة غير موجودة'),
+    );
+    return wallet;
   }
 
   @override
   Future<void> addWallet(Wallet wallet) async {
     final currentWallets = await localDataSource.getWallets();
-
     final updatedWallets = List<WalletModel>.from(currentWallets)
       ..add(WalletModel.fromEntity(wallet));
-
     await localDataSource.saveWallets(updatedWallets);
   }
 
   @override
   Future<void> updateWallet(Wallet wallet) async {
     final currentWallets = await localDataSource.getWallets();
-
     final index = currentWallets.indexWhere((w) => w.id == wallet.id);
 
     if (index != -1) {
       final updatedWallets = List<WalletModel>.from(currentWallets);
-
       updatedWallets[index] = WalletModel.fromEntity(wallet);
-
       await localDataSource.saveWallets(updatedWallets);
+    } else {
+      throw Exception('لا يمكن تحديث محفظة غير موجودة');
+    }
+  }
+
+  @override
+  Future<void> updateBalance(String walletId, double amountChange) async {
+    final currentWallets = await localDataSource.getWallets();
+    final index = currentWallets.indexWhere((w) => w.id == walletId);
+
+    if (index != -1) {
+      final oldWallet = currentWallets[index];
+      final newBalance = oldWallet.balance + amountChange;
+      final updatedWallet = oldWallet.copyWith(balance: newBalance);
+
+      final updatedWallets = List<WalletModel>.from(currentWallets);
+      updatedWallets[index] = WalletModel.fromEntity(updatedWallet);
+      await localDataSource.saveWallets(updatedWallets);
+    } else {
+      throw Exception('لم يتم العثور على المحفظة لتحديث رصيدها');
     }
   }
 
@@ -52,38 +78,14 @@ class WalletRepositoryImpl implements WalletRepository {
 
     final walletToRemove = currentWallets[walletIndex];
 
-    if (walletToRemove.type == WalletType.mainBudget ||
-        walletToRemove.type == WalletType.savings) {
-      throw Exception('لا يمكن حذف المحافظ الأساسية');
+    if (walletToRemove.type == WalletType.savings) {
+      throw Exception('لا يمكن حذف محفظة التوفير الأساسية');
     }
 
     final updatedWallets = currentWallets
         .where((w) => w.id != walletId)
         .toList();
     await localDataSource.saveWallets(updatedWallets);
-  }
-
-  @override
-  Future<void> setMainWallet(String walletId) async {
-    final wallets = await localDataSource.getWallets();
-
-    final updatedWallets = wallets.map((wallet) {
-      final updatedEntity = wallet.copyWith(isMain: wallet.id == walletId);
-
-      return WalletModel.fromEntity(updatedEntity);
-    }).toList();
-
-    await localDataSource.saveWallets(updatedWallets);
-  }
-
-  @override
-  Future<bool> getShowMainWalletPref() {
-    return localDataSource.getShowMainWalletPref();
-  }
-
-  @override
-  Future<void> setShowMainWalletPref(bool show) {
-    return localDataSource.setShowMainWalletPref(show);
   }
 
   @override
@@ -125,6 +127,8 @@ class WalletRepositoryImpl implements WalletRepository {
           date: DateTime.now(),
         ),
       );
+    } else {
+      throw Exception('إحدى المحافظ المحددة للتحويل غير موجودة');
     }
   }
 }
