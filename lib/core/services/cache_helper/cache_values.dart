@@ -12,4 +12,7 @@ class CacheKeys {
   static const String cachedWallets = 'cachedWallets';
   static const String showMainWalletPref = 'showMainWalletPref';
   static const String cachedFinancialGoals = 'cachedFinancialGoals';
+  static const String selectedCurrency = 'selectedCurrency';
+  static const String notificationsEnabled = 'notificationsEnabled';
+  static const String notificationsHistory = 'notificationsHistory';
 }

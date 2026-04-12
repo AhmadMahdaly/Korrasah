@@ -1,21 +1,26 @@
 import 'package:go_router/go_router.dart';
 import 'package:opration/core/router/app_routes.dart';
 import 'package:opration/features/Settings/manage_categories_screen.dart';
+import 'package:opration/features/Settings/activity_logs_screen.dart';
+import 'package:opration/features/Settings/app_guide_screen.dart';
+import 'package:opration/features/Settings/app_settings_screen.dart';
 import 'package:opration/features/Settings/menu_screen.dart';
 import 'package:opration/features/Settings/more_page.dart';
 import 'package:opration/features/Settings/recurring_transactions_screen.dart';
 import 'package:opration/features/auth/presentation/views/login_view.dart';
+import 'package:opration/features/cloud_backup/presentation/cloud_backup_screen.dart';
 import 'package:opration/features/debt/presentation/screens/debts_view.dart';
 import 'package:opration/features/goals/presentation/screens/financial_goals_screen.dart';
 import 'package:opration/features/intro/splash/views/splash_view.dart';
 import 'package:opration/features/main_layout/views/main_layout.dart';
 import 'package:opration/features/monthly_plan/presentation/screens/monthly_plan_screen.dart';
 import 'package:opration/features/monthly_plan/presentation/screens/setup_monthly_plan_screen.dart';
-import 'package:opration/features/notifications/notifications_screen.dart';
+import 'package:opration/features/notifications/notifications_center_screen.dart';
 import 'package:opration/features/shopping/presentation/screens/shopping_list_view.dart';
 import 'package:opration/features/transactions/domain/entities/transaction.dart';
 import 'package:opration/features/transactions/presentation/screens/add_transaction_screen.dart';
 import 'package:opration/features/transactions/presentation/screens/edit_transaction_screen.dart';
+import 'package:opration/features/transactions/presentation/screens/transactions_overview_screen.dart';
 import 'package:opration/features/transactions/presentation/screens/transaction_details_screen.dart';
 import 'package:opration/features/wallets/presentation/screens/transfer_history_screen.dart';
 import 'package:opration/features/wallets/presentation/screens/wallets_screen.dart';
@@ -42,7 +47,7 @@ class RouterGenerationConfig {
       GoRoute(
         path: AppRoutes.notificationsScreen,
         name: AppRoutes.notificationsScreen,
-        builder: (context, state) => const NotificationsScreen(),
+        builder: (context, state) => const NotificationsCenterScreen(),
       ),
       GoRoute(
         path: AppRoutes.addTransactionScreen,
@@ -60,6 +65,11 @@ class RouterGenerationConfig {
         builder: (context, state) => const TransactionDetailsScreen(),
       ),
       GoRoute(
+        path: AppRoutes.transactionsScreen,
+        name: AppRoutes.transactionsScreen,
+        builder: (context, state) => const TransactionsOverviewScreen(),
+      ),
+      GoRoute(
         path: AppRoutes.moreScreen,
         name: AppRoutes.moreScreen,
         builder: (context, state) => const MoreView(),
@@ -68,6 +78,11 @@ class RouterGenerationConfig {
         path: AppRoutes.settingsScreen,
         name: AppRoutes.settingsScreen,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.cloudBackupScreen,
+        name: AppRoutes.cloudBackupScreen,
+        builder: (context, state) => const CloudBackupScreen(),
       ),
       GoRoute(
         path: AppRoutes.editTransactionScreen,
@@ -87,6 +102,11 @@ class RouterGenerationConfig {
       GoRoute(
         path: AppRoutes.monthlyPlanScreen,
         name: AppRoutes.monthlyPlanScreen,
+        builder: (context, state) => const MonthlyPlanScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.budgetTrackingScreen,
+        name: AppRoutes.budgetTrackingScreen,
         builder: (context, state) => const MonthlyPlanScreen(),
       ),
       GoRoute(
@@ -118,6 +138,21 @@ class RouterGenerationConfig {
         path: AppRoutes.recurringTransactionsScreen,
         name: AppRoutes.recurringTransactionsScreen,
         builder: (context, state) => const RecurringTransactionsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.logsScreen,
+        name: AppRoutes.logsScreen,
+        builder: (context, state) => const ActivityLogsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.appSettingsScreen,
+        name: AppRoutes.appSettingsScreen,
+        builder: (context, state) => const AppSettingsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.appGuideScreen,
+        name: AppRoutes.appGuideScreen,
+        builder: (context, state) => const AppGuideScreen(),
       ),
     ],
   );

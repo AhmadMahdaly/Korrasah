@@ -27,7 +27,10 @@ class DebtCubit extends Cubit<DebtState> {
           .map(Debt.fromJson)
           .toList();
       emit(state.copyWith(debts: list));
+      return;
     }
+
+    emit(state.copyWith(debts: const []));
   }
 
   Future<void> _saveDebts(List<Debt> debts) async {

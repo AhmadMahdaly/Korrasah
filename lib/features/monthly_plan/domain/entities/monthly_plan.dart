@@ -438,6 +438,9 @@ class MonthlyPlan extends Equatable {
   double get totalPlannedDebts =>
       debts.fold(0, (sum, item) => sum + item.amount);
 
+  double get totalPlannedCommitments =>
+      totalBudgetedExpense + totalPlannedDebts;
+
   @override
   List<Object> get props => [id, incomes, expenses, debts, isStarted];
 

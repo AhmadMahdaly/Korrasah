@@ -58,10 +58,9 @@ class MonthlyPlanScreen extends StatelessWidget {
                           final wallets = (walletState is WalletLoaded)
                               ? walletState.wallets
                               : <Wallet>[];
-                          final linkedWallets = wallets
-                              .where((w) => w.type == WalletType.sideLinked)
+                          final hasalat = wallets
+                              .where((w) => w.isHasala)
                               .toList();
-
                           final hasRealIncome = plan.incomes.any(
                             (i) => i.id != 'default_salary' || i.amount > 0,
                           );
@@ -79,7 +78,7 @@ class MonthlyPlanScreen extends StatelessWidget {
                               return _buildPopulatedState(
                                 context: context,
                                 plan: plan,
-                                linkedWallets: linkedWallets,
+                                hasalat: hasalat,
                                 allTxs: txState.allTransactions,
                                 currentMonth: currentMonth,
                                 allCategories: txState.allCategories,
@@ -216,7 +215,7 @@ class MonthlyPlanScreen extends StatelessWidget {
   Widget _buildPopulatedState({
     required BuildContext context,
     required MonthlyPlan plan,
-    required List<Wallet> linkedWallets,
+    required List<Wallet> hasalat,
     required List<Transaction> allTxs,
     required DateTime currentMonth,
     required List<TransactionCategory> allCategories,
@@ -234,7 +233,6 @@ class MonthlyPlanScreen extends StatelessWidget {
     final totalPlannedIncome = plan.totalPlannedIncome;
     final actualTotalExpenses = planState.summary?.totalExpense ?? 0.0;
     final remainingFromIncome = totalPlannedIncome - actualTotalExpenses;
-
     final overallProgress = totalPlannedIncome > 0
         ? (actualTotalExpenses / totalPlannedIncome).clamp(0.0, 1.0)
         : 0.0;
@@ -454,13 +452,13 @@ class MonthlyPlanScreen extends StatelessWidget {
             24.verticalSpace,
           ],
 
-          if (linkedWallets.isNotEmpty) ...[
+          if (hasalat.isNotEmpty) ...[
             Text(
-              'المحافظ المرتبطة',
+              'الحصالات',
               style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
             ),
             12.verticalSpace,
-            ...linkedWallets.map(_buildWalletTile),
+            ...hasalat.map(_buildWalletTile),
             24.verticalSpace,
           ],
 
@@ -577,7 +575,7 @@ class MonthlyPlanScreen extends StatelessWidget {
     final actualSpent = allTxs
         .where(
           (t) =>
-              relevantIds.contains(t.allocationId) &&
+              relevantIds.contains(t.primaryCategoryId) &&
               t.type == TransactionType.expense &&
               t.date.isAfter(startDate.subtract(const Duration(seconds: 1))) &&
               t.date.isBefore(endDate.add(const Duration(days: 1))),
@@ -719,10 +717,10 @@ class MonthlyPlanScreen extends StatelessWidget {
           ],
         ),
         trailing: CircleAvatar(
-          backgroundColor: AppColors.primaryTextColor.withAlpha(55),
+          backgroundColor: Colors.teal.withAlpha(30),
           child: const Icon(
-            Icons.account_balance_wallet,
-            color: AppColors.primaryTextColor,
+            Icons.savings_outlined,
+            color: Colors.teal,
           ),
         ),
       ),
@@ -783,7 +781,7 @@ class MonthlyPlanScreen extends StatelessWidget {
         return BlocBuilder<TransactionCubit, TransactionState>(
           builder: (context, txState) {
             final transactions = txState.allTransactions.where((t) {
-              return relevantIds.contains(t.allocationId) &&
+              return relevantIds.contains(t.primaryCategoryId) &&
                   t.type == TransactionType.expense &&
                   t.date.isAfter(
                     startDate.subtract(const Duration(seconds: 1)),

@@ -24,7 +24,10 @@ class ShoppingCubit extends Cubit<ShoppingState> {
           .map(ShoppingItem.fromJson)
           .toList();
       emit(state.copyWith(items: list));
+      return;
     }
+
+    emit(state.copyWith(items: const []));
   }
 
   Future<void> _saveItems(List<ShoppingItem> items) async {

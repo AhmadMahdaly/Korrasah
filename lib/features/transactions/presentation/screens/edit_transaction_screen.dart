@@ -23,9 +23,10 @@ class EditTransactionScreen extends StatefulWidget {
 class _EditTransactionScreenState extends State<EditTransactionScreen> {
   late final TextEditingController _amountController;
   late final TextEditingController _noteController;
-  late String _selectedCategoryId;
+  String? _selectedCategoryId;
   late String _selectedWalletId;
   late DateTime _selectedDate;
+  late final bool _isBudgetLinked;
 
   final _formKey = GlobalKey<FormState>();
 
@@ -38,7 +39,11 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
     _noteController = TextEditingController(
       text: widget.transaction.note ?? '',
     );
-    _selectedCategoryId = widget.transaction.allocationId!;
+    _isBudgetLinked =
+        widget.transaction.allocationId != null ||
+        widget.transaction.budgetBucketId != null ||
+        widget.transaction.incomeSourceId != null;
+    _selectedCategoryId = widget.transaction.primaryCategoryId;
     _selectedWalletId = widget.transaction.walletId!;
     _selectedDate = widget.transaction.date;
   }
@@ -56,7 +61,11 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
     final updatedTransaction = Transaction(
       id: widget.transaction.id,
       amount: double.parse(_amountController.text),
-      allocationId: _selectedCategoryId,
+      allocationId: _isBudgetLinked ? _selectedCategoryId : null,
+      categoryId: _isBudgetLinked ? widget.transaction.categoryId : _selectedCategoryId,
+      incomeSourceId: widget.transaction.incomeSourceId,
+      budgetBucketId: widget.transaction.budgetBucketId,
+      budgetBucketType: widget.transaction.budgetBucketType,
       date: _selectedDate,
       note: _noteController.text,
       type: widget.transaction.type,

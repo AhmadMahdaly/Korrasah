@@ -2,6 +2,8 @@ import 'package:equatable/equatable.dart';
 
 enum TransactionType { income, expense, transfer, reallocation }
 
+enum BudgetBucketType { allocation, jar, incomeSource, general }
+
 class Transaction extends Equatable {
   const Transaction({
     required this.id,
@@ -10,6 +12,10 @@ class Transaction extends Equatable {
     required this.type,
     this.walletId,
     this.allocationId,
+    this.categoryId,
+    this.incomeSourceId,
+    this.budgetBucketId,
+    this.budgetBucketType,
     this.fromWalletId,
     this.toWalletId,
     this.fromAllocationId,
@@ -25,6 +31,7 @@ class Transaction extends Equatable {
       fromWalletId: json['fromWalletId'] as String?,
       toWalletId: json['toWalletId'] as String?,
       allocationId: json['allocationId'] as String?,
+      categoryId: json['categoryId'] as String?,
       fromAllocationId: json['fromAllocationId'] as String?,
       toAllocationId: json['toAllocationId'] as String?,
 
@@ -33,6 +40,11 @@ class Transaction extends Equatable {
       type: TransactionType.values.byName(json['type'] as String),
 
       walletId: json['walletId'] as String? ?? 'default_wallet',
+      incomeSourceId: json['incomeSourceId'] as String?,
+      budgetBucketId: json['budgetBucketId'] as String?,
+      budgetBucketType: json['budgetBucketType'] != null
+          ? BudgetBucketType.values.byName(json['budgetBucketType'] as String)
+          : null,
     );
   }
 
@@ -47,8 +59,15 @@ class Transaction extends Equatable {
   final String? toWalletId;
 
   final String? allocationId;
+  final String? categoryId;
+  final String? incomeSourceId;
+  final String? budgetBucketId;
+  final BudgetBucketType? budgetBucketType;
   final String? fromAllocationId;
   final String? toAllocationId;
+
+  String? get primaryCategoryId =>
+      categoryId ?? allocationId ?? budgetBucketId ?? incomeSourceId;
 
   @override
   List<Object?> get props => [
@@ -57,6 +76,10 @@ class Transaction extends Equatable {
     fromWalletId,
     toWalletId,
     allocationId,
+    categoryId,
+    incomeSourceId,
+    budgetBucketId,
+    budgetBucketType,
     fromAllocationId,
     toAllocationId,
     date,
@@ -72,12 +95,16 @@ class Transaction extends Equatable {
       'fromWalletId': fromWalletId,
       'toWalletId': toWalletId,
       'allocationId': allocationId,
+      'categoryId': categoryId,
       'fromAllocationId': fromAllocationId,
       'toAllocationId': toAllocationId,
       'date': date.toIso8601String(),
       'note': note,
       'type': type.name,
       'walletId': walletId,
+      'incomeSourceId': incomeSourceId,
+      'budgetBucketId': budgetBucketId,
+      'budgetBucketType': budgetBucketType?.name,
     };
   }
 }

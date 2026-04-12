@@ -1,15 +1,15 @@
 // ignore_for_file: omit_local_variable_types
 
-import 'package:opration/features/Allocation/domain/repo/allocation_repo.dart';
 import 'package:opration/features/monthly_plan/domain/entities/budget_summary.dart';
 import 'package:opration/features/transactions/domain/entities/transaction.dart';
 import 'package:opration/features/transactions/domain/repositories/transaction_repository.dart';
+import 'package:opration/features/wallets/domain/repositories/wallet_repository.dart';
 
 class GetBudgetSummaryUseCase {
-  GetBudgetSummaryUseCase(this.transactionRepo, this.allocationRepo);
+  GetBudgetSummaryUseCase(this.transactionRepo, this.walletRepository);
 
   final TransactionRepository transactionRepo;
-  final AllocationRepository allocationRepo;
+  final WalletRepository walletRepository;
 
   Future<BudgetSummary> execute(DateTime month) async {
     final String yearMonth =
@@ -22,15 +22,25 @@ class GetBudgetSummaryUseCase {
       return tx.date.year == month.year && tx.date.month == month.month;
     }).toList();
 
-    final allocations = await allocationRepo.getAllocations(yearMonth);
+    final plan = await transactionRepo.getMonthlyPlan(yearMonth);
+    final wallets = await walletRepository.getWallets();
 
     double income = 0;
     double expense = 0;
 
-    final double budgeted = allocations.fold(
-      0,
-      (sum, item) => sum + item.budgetedAmount,
-    );
+    final hasalatPlanned = wallets
+        .where((wallet) => wallet.isHasala)
+        .fold<double>(0, (sum, wallet) => sum + wallet.plannedMonthlyFunding);
+
+    final savingsTarget = wallets
+        .where((wallet) => wallet.isSavingsWallet)
+        .fold<double>(0, (sum, wallet) => sum + wallet.plannedMonthlyFunding);
+
+    final double budgeted =
+        plan.totalBudgetedExpense +
+        plan.totalPlannedDebts +
+        hasalatPlanned +
+        savingsTarget;
 
     for (final tx in transactions) {
       // 🔴 استبعاد التحويلات

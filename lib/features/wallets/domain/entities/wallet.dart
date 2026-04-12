@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:opration/features/transactions/domain/entities/transaction_category.dart';
 
-enum WalletType { savings, sideIndependent, sideLinked }
+enum WalletType { savings, real, jar }
 
 enum ExecutionType { auto, confirm, manual, none }
 
@@ -10,8 +10,9 @@ class Wallet extends Equatable {
     required this.id,
     required this.name,
     required this.balance,
+    this.iconName,
     this.colorValue,
-    this.type = WalletType.sideIndependent,
+    this.type = WalletType.real,
     this.monthlyAmount,
     this.executionDay,
     this.executionType = ExecutionType.none,
@@ -26,6 +27,7 @@ class Wallet extends Equatable {
   final String id;
   final String name;
   final double balance;
+  final String? iconName;
   final WalletType type;
   final int? colorValue;
   final double? monthlyAmount;
@@ -39,10 +41,21 @@ class Wallet extends Equatable {
   final DateTime? lastProcessedDate;
   final bool includeInTotal;
 
+  bool get isSavingsWallet => type == WalletType.savings;
+
+  bool get isHasala => type == WalletType.jar;
+
+  bool get isRealWallet => type == WalletType.real;
+
+  bool get isBudgetBucket => isSavingsWallet || isHasala;
+
+  double get plannedMonthlyFunding => monthlyAmount ?? 0.0;
+
   Wallet copyWith({
     String? id,
     String? name,
     double? balance,
+    String? iconName,
     WalletType? type,
     int? colorValue,
     double? monthlyAmount,
@@ -57,6 +70,7 @@ class Wallet extends Equatable {
   }) {
     return Wallet(
       id: id ?? this.id,
+      iconName: iconName ?? this.iconName,
       colorValue: colorValue ?? this.colorValue,
       name: name ?? this.name,
       balance: balance ?? this.balance,
@@ -78,6 +92,7 @@ class Wallet extends Equatable {
     id,
     name,
     balance,
+    iconName,
     type,
     monthlyAmount,
     executionDay,

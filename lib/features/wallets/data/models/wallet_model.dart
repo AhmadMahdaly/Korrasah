@@ -1,11 +1,26 @@
 import 'package:opration/features/transactions/domain/entities/transaction_category.dart';
 import 'package:opration/features/wallets/domain/entities/wallet.dart';
 
+WalletType _walletTypeFromJson(dynamic rawType) {
+  switch (rawType?.toString()) {
+    case 'jar':
+    case 'sideLinked':
+      return WalletType.jar;
+    case 'savings':
+      return WalletType.savings;
+    case 'real':
+    case 'sideIndependent':
+    default:
+      return WalletType.real;
+  }
+}
+
 class WalletModel extends Wallet {
   const WalletModel({
     required super.id,
     required super.name,
     required super.balance,
+    super.iconName,
     required super.type,
     required super.colorValue,
     super.monthlyAmount,
@@ -21,6 +36,7 @@ class WalletModel extends Wallet {
       id: wallet.id,
       name: wallet.name,
       balance: wallet.balance,
+      iconName: wallet.iconName,
       type: wallet.type,
       monthlyAmount: wallet.monthlyAmount,
       executionDay: wallet.executionDay,
@@ -37,12 +53,10 @@ class WalletModel extends Wallet {
       id: json['id'].toString(),
       name: json['name'].toString(),
       balance: (json['balance'] as num).toDouble(),
+      iconName: json['iconName']?.toString(),
       colorValue: json['colorValue'] as int,
 
-      type: WalletType.values.firstWhere(
-        (e) => e.toString() == json['type'] || e.name == json['type'],
-        orElse: () => WalletType.sideIndependent,
-      ),
+      type: _walletTypeFromJson(json['type']),
 
       monthlyAmount: json['monthlyAmount'] != null
           ? (json['monthlyAmount'] as num).toDouble()
@@ -67,6 +81,7 @@ class WalletModel extends Wallet {
       'id': id,
       'name': name,
       'balance': balance,
+      'iconName': iconName,
       'type': type.name,
       'monthlyAmount': monthlyAmount,
       'executionDay': executionDay,

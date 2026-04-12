@@ -123,8 +123,9 @@ class _RecurringTransactionsScreenState
   }
 
   Widget _buildExpensesList(MonthlyPlan plan) {
-    if (plan.expenses.isEmpty)
+    if (plan.expenses.isEmpty) {
       return _buildEmptyState('لا توجد مصروفات متكررة');
+    }
     return ListView.builder(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       itemCount: plan.expenses.length,

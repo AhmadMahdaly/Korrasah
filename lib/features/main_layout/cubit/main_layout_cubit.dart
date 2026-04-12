@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opration/features/Settings/menu_screen.dart';
+import 'package:opration/features/home/presentation/screens/home_dashboard_screen.dart';
 import 'package:opration/features/monthly_plan/presentation/screens/monthly_plan_screen.dart';
 import 'package:opration/features/transactions/presentation/screens/add_transaction_screen.dart';
-import 'package:opration/features/transactions/presentation/screens/transaction_details_screen.dart';
 import 'package:opration/features/wallets/presentation/screens/wallets_screen.dart';
 
 part 'main_layout_state.dart';
@@ -11,7 +11,7 @@ part 'main_layout_state.dart';
 class MainLayoutCubit extends Cubit<MainLayoutState> {
   MainLayoutCubit() : super(MainLayoutInitial());
   List<Widget> screens = [
-    const TransactionDetailsScreen(),
+    const HomeDashboardScreen(),
     const WalletsScreen(),
     const AddTransactionScreen(),
     const MonthlyPlanScreen(),
@@ -23,7 +23,7 @@ class MainLayoutCubit extends Cubit<MainLayoutState> {
     backPressCount = 0;
   }
 
-  int currentIndex = 2;
+  int currentIndex = 0;
   void changeNavBarIndex(int index) {
     if (index == currentIndex) return;
     resetBackPress();

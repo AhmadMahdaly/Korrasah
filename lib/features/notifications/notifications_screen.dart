@@ -51,10 +51,12 @@ class NotificationsScreen extends StatelessWidget {
                         recurrence = item.recurrenceType;
                         selectedDays = item.selectedDays;
                         if (item.executionType.name == 'auto') isAuto = true;
-                        if (item.executionType.name == 'manual')
+                        if (item.executionType.name == 'manual') {
                           isManual = true;
-                        if (item.executionType.name == 'confirm')
+                        }
+                        if (item.executionType.name == 'confirm') {
                           isConfirm = true;
+                        }
                         found = true;
                       }
                     }
@@ -68,10 +70,12 @@ class NotificationsScreen extends StatelessWidget {
                         recurrence = item.recurrenceType;
                         selectedDays = item.selectedDays;
                         if (item.executionType.name == 'auto') isAuto = true;
-                        if (item.executionType.name == 'manual')
+                        if (item.executionType.name == 'manual') {
                           isManual = true;
-                        if (item.executionType.name == 'confirm')
+                        }
+                        if (item.executionType.name == 'confirm') {
                           isConfirm = true;
+                        }
                         found = true;
                       }
                     }
@@ -81,15 +85,17 @@ class NotificationsScreen extends StatelessWidget {
                           .where((w) => w.id == category.id)
                           .toList();
                       if (items.isNotEmpty &&
-                          items.first.type.name == 'sideLinked') {
+                          items.first.type.name == 'jar') {
                         final item = items.first;
                         recurrence = item.recurrenceType;
                         selectedDays = item.selectedDays;
                         if (item.executionType.name == 'auto') isAuto = true;
-                        if (item.executionType.name == 'manual')
+                        if (item.executionType.name == 'manual') {
                           isManual = true;
-                        if (item.executionType.name == 'confirm')
+                        }
+                        if (item.executionType.name == 'confirm') {
                           isConfirm = true;
+                        }
                         found = true;
                       }
                     }

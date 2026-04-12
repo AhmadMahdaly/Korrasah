@@ -127,7 +127,7 @@ class TransactionCubit extends Cubit<TransactionState> {
 
         // المرور على جميع المحافظ الفعلية (المستقلة) لترحيل الفائض منها
         final independentWallets = wallets.where(
-          (w) => w.type == WalletType.sideIndependent,
+          (w) => w.type == WalletType.real,
         );
 
         for (final wallet in independentWallets) {

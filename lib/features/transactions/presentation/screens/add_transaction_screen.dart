@@ -152,10 +152,12 @@ class _TransactionFormState extends State<_TransactionForm> {
 
   DateTime _selectedDate = DateTime.now();
   String? _selectedWalletId;
+  String? _selectedBudgetBucketId;
   String? _selectedMainCategoryId;
   String? _selectedSubCategoryId;
 
   bool _isWalletTarget = false;
+  bool _isJarBudgetTarget = false;
 
   @override
   void dispose() {
@@ -175,13 +177,35 @@ class _TransactionFormState extends State<_TransactionForm> {
         return;
       }
 
+      String? finalAllocationId;
       String? finalCategoryId;
+      String? finalIncomeSourceId;
+      String? finalBudgetBucketId;
+      BudgetBucketType? finalBudgetBucketType;
 
       if (_isWalletTarget) {
-        finalCategoryId = _selectedSubCategoryId ?? _selectedWalletId;
+        finalCategoryId = _selectedMainCategoryId ?? _selectedSubCategoryId;
       } else {
-        finalCategoryId = _selectedSubCategoryId ?? _selectedMainCategoryId;
-        if (finalCategoryId == null) {
+        if (_isJarBudgetTarget) {
+          finalBudgetBucketId = _selectedBudgetBucketId;
+          finalBudgetBucketType = BudgetBucketType.jar;
+          finalCategoryId = _selectedSubCategoryId ?? _selectedBudgetBucketId;
+        } else if (widget.type == TransactionType.income) {
+          finalIncomeSourceId = _selectedMainCategoryId;
+          finalBudgetBucketId = _selectedMainCategoryId;
+          finalBudgetBucketType = BudgetBucketType.incomeSource;
+          finalCategoryId = _selectedSubCategoryId;
+        } else {
+          finalAllocationId = _selectedMainCategoryId;
+          finalBudgetBucketId = _selectedMainCategoryId;
+          finalBudgetBucketType = BudgetBucketType.allocation;
+          finalCategoryId = _selectedSubCategoryId;
+        }
+
+        if ((_isJarBudgetTarget && finalBudgetBucketId == null) ||
+            (!_isJarBudgetTarget &&
+                finalAllocationId == null &&
+                finalIncomeSourceId == null)) {
           showCustomSnackBar(
             context,
             msgColor: AppColors.white,
@@ -199,7 +223,11 @@ class _TransactionFormState extends State<_TransactionForm> {
       final transaction = Transaction(
         id: getIt<Uuid>().v4(),
         amount: amount,
-        allocationId: finalCategoryId,
+        allocationId: finalAllocationId,
+        categoryId: finalCategoryId,
+        incomeSourceId: finalIncomeSourceId,
+        budgetBucketId: finalBudgetBucketId,
+        budgetBucketType: finalBudgetBucketType,
         date: _selectedDate,
         note: _noteController.text.isNotEmpty ? _noteController.text : '',
         type: widget.type,
@@ -218,6 +246,7 @@ class _TransactionFormState extends State<_TransactionForm> {
       _amountController.clear();
       _noteController.clear();
       setState(() {
+        _selectedBudgetBucketId = null;
         _selectedMainCategoryId = null;
         _selectedSubCategoryId = null;
         _selectedDate = DateTime.now();
@@ -258,7 +287,7 @@ class _TransactionFormState extends State<_TransactionForm> {
       spent = allTxs
           .where(
             (t) =>
-                relevantIds.contains(t.allocationId) &&
+                relevantIds.contains(t.primaryCategoryId) &&
                 t.type == TransactionType.expense &&
                 t.date.year == now.year &&
                 t.date.month == now.month,
@@ -277,7 +306,7 @@ class _TransactionFormState extends State<_TransactionForm> {
       spent = allTxs
           .where(
             (t) =>
-                relevantIds.contains(t.allocationId) &&
+                relevantIds.contains(t.primaryCategoryId) &&
                 t.type == TransactionType.income &&
                 t.date.year == now.year &&
                 t.date.month == now.month,
@@ -290,7 +319,9 @@ class _TransactionFormState extends State<_TransactionForm> {
 
   void _addNewSubCategoryForSelectedMain() {
     final parentId = _isWalletTarget
-        ? _selectedWalletId
+        ? _selectedMainCategoryId
+        : _isJarBudgetTarget
+        ? _selectedBudgetBucketId
         : _selectedMainCategoryId;
 
     if (parentId == null) return;
@@ -324,8 +355,16 @@ class _TransactionFormState extends State<_TransactionForm> {
             final plan = planState.plan;
 
             var categoryDropdownItems = <DropdownMenuItem<String>>[];
+            final plannedExpenseIds = plan?.expenses
+                    .map((expense) => expense.categoryId)
+                    .toSet() ??
+                <String>{};
+            final plannedIncomeNames = plan?.incomes
+                    .map((income) => income.name)
+                    .toSet() ??
+                <String>{};
 
-            if (!_isWalletTarget && plan != null) {
+            if (!_isWalletTarget && !_isJarBudgetTarget && plan != null) {
               if (widget.type == TransactionType.expense) {
                 categoryDropdownItems = plan.expenses.map((exp) {
                   final category = allCategories.firstWhere(
@@ -353,24 +392,11 @@ class _TransactionFormState extends State<_TransactionForm> {
               } else {
                 categoryDropdownItems = plan.incomes
                     .map((inc) {
-                      final category = allCategories.firstWhere(
-                        (c) =>
-                            c.name == inc.name &&
-                            c.type == TransactionType.income,
-                        orElse: () => TransactionCategory(
-                          id: '',
-                          name: inc.name,
-                          colorValue: Colors.grey.value,
-                          type: TransactionType.income,
-                        ),
-                      );
-
                       return DropdownMenuItem<String>(
-                        value: category.id.isNotEmpty ? category.id : null,
+                        value: inc.id,
                         child: Text(inc.name),
                       );
                     })
-                    .where((item) => item.value != null)
                     .toList();
               }
 
@@ -380,10 +406,36 @@ class _TransactionFormState extends State<_TransactionForm> {
                   )) {
                 _selectedMainCategoryId = null;
               }
+            } else {
+              categoryDropdownItems = allCategories
+                  .where(
+                    (c) =>
+                        c.type == widget.type &&
+                        c.parentId == null &&
+                        (widget.type == TransactionType.expense
+                            ? !plannedExpenseIds.contains(c.id)
+                            : !plannedIncomeNames.contains(c.name)),
+                  )
+                  .map(
+                    (category) => DropdownMenuItem<String>(
+                      value: category.id,
+                      child: Text(category.name),
+                    ),
+                  )
+                  .toList();
+            }
+
+            if (_selectedMainCategoryId != null &&
+                !categoryDropdownItems.any(
+                  (item) => item.value == _selectedMainCategoryId,
+                )) {
+              _selectedMainCategoryId = null;
             }
 
             final parentIdForSub = _isWalletTarget
-                ? _selectedWalletId
+                ? _selectedMainCategoryId
+                : _isJarBudgetTarget
+                ? _selectedBudgetBucketId
                 : _selectedMainCategoryId;
 
             final subCategories = parentIdForSub != null
@@ -394,40 +446,47 @@ class _TransactionFormState extends State<_TransactionForm> {
 
             return BlocBuilder<WalletCubit, WalletState>(
               builder: (context, walletState) {
-                var wallets = (walletState is WalletLoaded)
+                final wallets = (walletState is WalletLoaded)
                     ? walletState.wallets.toList()
                     : <Wallet>[];
-
-                if (!_isWalletTarget) {
-                  wallets = wallets
-                      .where((w) => w.type == WalletType.sideLinked)
-                      .toList();
-                } else {
-                  wallets = wallets
-                      .where(
-                        (w) =>
-                            w.type == WalletType.sideIndependent ||
-                            w.type == WalletType.savings,
-                      )
-                      .toList();
-                }
+                final actualWallets = wallets
+                    .where((w) => w.isRealWallet)
+                    .toList();
+                final hasalat = wallets.where((w) => w.isHasala).toList();
 
                 if (_selectedWalletId != null &&
-                    !wallets.any((w) => w.id == _selectedWalletId)) {
+                    !actualWallets.any((w) => w.id == _selectedWalletId)) {
                   _selectedWalletId = null;
                 }
 
-                if (_selectedWalletId == null && wallets.isNotEmpty) {
-                  _selectedWalletId = wallets.first.id;
+                if (_selectedWalletId == null && actualWallets.isNotEmpty) {
+                  _selectedWalletId = actualWallets.first.id;
+                }
+
+                if (_selectedBudgetBucketId != null &&
+                    !hasalat.any((w) => w.id == _selectedBudgetBucketId)) {
+                  _selectedBudgetBucketId = null;
                 }
 
                 return SingleChildScrollView(
                   padding: EdgeInsets.all(16.r),
                   child: Form(
                     key: _formKey,
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        _buildTransactionIntroCard(
+                          walletsCount: actualWallets.length,
+                        ),
+                        16.verticalSpace,
+                        _buildFormSection(
+                          title: 'بيانات العملية',
+                          subtitle:
+                              'ابدأ بالمبلغ الفعلي الذي تريد تسجيله داخل الحركة.',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                         Text(
                           'المبلغ',
                           style: TextStyle(
@@ -473,7 +532,10 @@ class _TransactionFormState extends State<_TransactionForm> {
                                 : null,
                           ),
                         ),
-                        24.verticalSpace,
+                            ],
+                          ),
+                        ),
+                        16.verticalSpace,
 
                         Text(
                           'نوع المعاملة',
@@ -501,7 +563,8 @@ class _TransactionFormState extends State<_TransactionForm> {
                                 contentPadding: EdgeInsets.zero,
                                 onChanged: (val) => setState(() {
                                   _isWalletTarget = val!;
-                                  _selectedWalletId = null;
+                                  _isJarBudgetTarget = false;
+                                  _selectedBudgetBucketId = null;
                                   _selectedMainCategoryId = null;
                                   _selectedSubCategoryId = null;
                                 }),
@@ -521,13 +584,34 @@ class _TransactionFormState extends State<_TransactionForm> {
                                 contentPadding: EdgeInsets.zero,
                                 onChanged: (val) => setState(() {
                                   _isWalletTarget = val!;
-                                  _selectedWalletId = null;
+                                  _isJarBudgetTarget = false;
+                                  _selectedBudgetBucketId = null;
                                   _selectedMainCategoryId = null;
                                   _selectedSubCategoryId = null;
                                 }),
                               ),
                             ),
                           ],
+                        ),
+                        10.verticalSpace,
+                        _buildHintStrip(
+                          icon: _isWalletTarget
+                              ? Icons.account_balance_wallet_outlined
+                              : Icons.pie_chart_outline_rounded,
+                          color: _isWalletTarget ? Colors.blueGrey : Colors.teal,
+                          text: _isWalletTarget
+                              ? 'التسجيل المباشر يسجل الحركة على المحفظة الفعلية فقط.'
+                              : 'التسجيل على الخطة يربط العملية بالمخصصات أو الحصالات داخل الميزانية.',
+                        ),
+                        10.verticalSpace,
+                        _buildHintStrip(
+                          icon: _isWalletTarget
+                              ? Icons.lock_open_outlined
+                              : Icons.savings_outlined,
+                          color: _isWalletTarget ? Colors.blueGrey : Colors.teal,
+                          text: _isWalletTarget
+                              ? 'اختر المحفظة التي خرجت منها أو دخلت إليها الفلوس بشكل فعلي.'
+                              : 'اختر الحصالة أو وعاء الخطة الذي تريد أن تنعكس عليه الحركة داخل الميزانية.',
                         ),
                         24.verticalSpace,
 
@@ -548,7 +632,7 @@ class _TransactionFormState extends State<_TransactionForm> {
                             Icons.keyboard_arrow_down,
                             color: Colors.grey,
                           ),
-                          items: wallets
+                          items: actualWallets
                               .map(
                                 (w) => DropdownMenuItem(
                                   value: w.id,
@@ -566,9 +650,92 @@ class _TransactionFormState extends State<_TransactionForm> {
                           }),
                           validator: (v) => v == null ? 'اختر المحفظة' : null,
                         ),
+                        10.verticalSpace,
+                        _buildHintStrip(
+                          icon: _isWalletTarget
+                              ? Icons.lock_open_outlined
+                              : Icons.savings_outlined,
+                          color: _isWalletTarget ? Colors.blueGrey : Colors.teal,
+                          text: _isWalletTarget
+                              ? 'اختر المحفظة التي خرجت منها أو دخلت إليها الفلوس بشكل فعلي.'
+                              : 'اختر الحصالة أو وعاء الخطة الذي تريد أن تنعكس عليه الحركة داخل الميزانية.',
+                        ),
                         24.verticalSpace,
 
                         if (!_isWalletTarget) ...[
+                          Row(
+                            children: [
+                              Expanded(
+                                child: RadioListTile<bool>(
+                                  title: Text(
+                                    widget.type == TransactionType.expense
+                                        ? 'مخصص'
+                                        : 'مصدر دخل',
+                                    style: TextStyle(
+                                      fontSize: 12.sp,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  value: false,
+                                  groupValue: _isJarBudgetTarget,
+                                  contentPadding: EdgeInsets.zero,
+                                  onChanged: (val) => setState(() {
+                                    _isJarBudgetTarget = val ?? false;
+                                    _selectedBudgetBucketId = null;
+                                    _selectedMainCategoryId = null;
+                                    _selectedSubCategoryId = null;
+                                  }),
+                                ),
+                              ),
+                              Expanded(
+                                child: RadioListTile<bool>(
+                                  title: Text(
+                                    'حصالة',
+                                    style: TextStyle(
+                                      fontSize: 12.sp,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  value: true,
+                                  groupValue: _isJarBudgetTarget,
+                                  contentPadding: EdgeInsets.zero,
+                                  onChanged: (val) => setState(() {
+                                    _isJarBudgetTarget = val ?? false;
+                                    _selectedBudgetBucketId = null;
+                                    _selectedMainCategoryId = null;
+                                    _selectedSubCategoryId = null;
+                                  }),
+                                ),
+                              ),
+                            ],
+                          ),
+                          12.verticalSpace,
+                          if (_isJarBudgetTarget) ...[
+                            DropdownButtonFormField<String>(
+                              value: _selectedBudgetBucketId,
+                              decoration: _dropdownDecoration(),
+                              hint: const Text('اختر الحصالة'),
+                              icon: const Icon(
+                                Icons.keyboard_arrow_down,
+                                color: Colors.grey,
+                              ),
+                              items: hasalat
+                                  .map(
+                                    (w) => DropdownMenuItem<String>(
+                                      value: w.id,
+                                      child: Text(w.name),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) => setState(() {
+                                _selectedBudgetBucketId = v;
+                                _selectedSubCategoryId = null;
+                              }),
+                              validator: (v) => v == null ? 'مطلوب' : null,
+                            ),
+                            24.verticalSpace,
+                          ],
+                          if (!_isJarBudgetTarget) ...[
                           Text(
                             widget.type == TransactionType.expense
                                 ? 'المخصص الأساسي *'
@@ -586,6 +753,40 @@ class _TransactionFormState extends State<_TransactionForm> {
                               widget.type == TransactionType.expense
                                   ? 'اختر المخصص'
                                   : 'اختر المصدر',
+                            ),
+                            icon: const Icon(
+                              Icons.keyboard_arrow_down,
+                              color: Colors.grey,
+                            ),
+                            items: categoryDropdownItems,
+                            onChanged: (v) => setState(() {
+                              _selectedMainCategoryId = v;
+                              _selectedSubCategoryId = null;
+                            }),
+                            validator: (v) => v == null ? 'مطلوب' : null,
+                          ),
+                          24.verticalSpace,
+                        ],
+                        ],
+
+                        if (_isWalletTarget) ...[
+                          Text(
+                            widget.type == TransactionType.expense
+                                ? 'الفئة العامة *'
+                                : 'فئة الدخل العامة *',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          8.verticalSpace,
+                          DropdownButtonFormField<String>(
+                            value: _selectedMainCategoryId,
+                            decoration: _dropdownDecoration(),
+                            hint: Text(
+                              widget.type == TransactionType.expense
+                                  ? 'اختر الفئة العامة'
+                                  : 'اختر فئة الدخل',
                             ),
                             icon: const Icon(
                               Icons.keyboard_arrow_down,
@@ -741,6 +942,137 @@ class _TransactionFormState extends State<_TransactionForm> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildFormSection({
+    required String title,
+    String? subtitle,
+    required Widget child,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: AppTextStyle.style14Bold),
+          if (subtitle != null) ...[
+            6.verticalSpace,
+            Text(
+              subtitle,
+              style: AppTextStyle.style12W500.copyWith(
+                color: Colors.grey.shade600,
+                height: 1.4,
+              ),
+            ),
+            14.verticalSpace,
+          ] else
+            12.verticalSpace,
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransactionIntroCard({required int walletsCount}) {
+    final isExpense = widget.type == TransactionType.expense;
+    final title = _isWalletTarget
+        ? (isExpense ? 'تسجيل مصروف مباشر' : 'تسجيل دخل مباشر')
+        : (isExpense ? 'تسجيل مصروف على الخطة' : 'تسجيل دخل ضمن الخطة');
+    final description = _isWalletTarget
+        ? 'استخدم هذا الوضع عندما تريد تسجيل حركة على محفظة فعلية مثل الكاش أو البنك بدون ربط مباشر بتوزيع الميزانية.'
+        : 'استخدم هذا الوضع عندما تريد أن تنعكس الحركة على الخطة الشهرية والمخصصات أو الحصالات.';
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20.r,
+                backgroundColor: AppColors.primaryColor.withAlpha(16),
+                child: Icon(
+                  isExpense
+                      ? Icons.remove_circle_outline_rounded
+                      : Icons.add_circle_outline_rounded,
+                  color: AppColors.primaryColor,
+                  size: 20.r,
+                ),
+              ),
+              12.horizontalSpace,
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTextStyle.style16Bold.copyWith(
+                    color: AppColors.secondaryTextColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          10.verticalSpace,
+          Text(
+            description,
+            style: AppTextStyle.style12W500.copyWith(
+              color: Colors.grey.shade700,
+              height: 1.45,
+            ),
+          ),
+          12.verticalSpace,
+          _buildHintStrip(
+            icon: Icons.account_balance_wallet_outlined,
+            color: AppColors.primaryColor,
+            text: walletsCount > 0
+                ? 'عدد المحافظ أو الأوعية المتاحة الآن: $walletsCount'
+                : 'لا توجد محافظ متاحة حاليًا، أضف محفظة أو حصالة أولاً.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHintStrip({
+    required IconData icon,
+    required Color color,
+    required String text,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      decoration: BoxDecoration(
+        color: color.withAlpha(12),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18.r, color: color),
+          8.horizontalSpace,
+          Expanded(
+            child: Text(
+              text,
+              style: AppTextStyle.style12W500.copyWith(
+                color: color,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

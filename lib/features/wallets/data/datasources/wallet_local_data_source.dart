@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:opration/core/services/cache_helper/cache_values.dart';
@@ -35,7 +35,8 @@ class WalletLocalDataSourceImpl implements WalletLocalDataSource {
     } else {
       final savingsWallet = WalletModel(
         id: 'savings_wallet_id',
-        name: 'التوفير',
+        name: 'Ø§Ù„ØªÙˆÙÙŠØ±',
+        iconName: 'PiggyBank',
         colorValue: Colors.amber.value,
         balance: 0,
         type: WalletType.savings,
@@ -77,3 +78,4 @@ class WalletLocalDataSourceImpl implements WalletLocalDataSource {
         .toList();
   }
 }
+

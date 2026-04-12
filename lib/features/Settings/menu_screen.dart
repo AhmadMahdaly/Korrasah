@@ -80,7 +80,9 @@ class SettingsScreen extends StatelessWidget {
                 const Color(0xFFFF7A00),
                 const Color(0xFFFF3D00),
               ],
-              onTap: () {},
+              onTap: () {
+                context.push(AppRoutes.logsScreen);
+              },
             ),
 
             _buildMenuItem(
@@ -93,6 +95,42 @@ class SettingsScreen extends StatelessWidget {
               ],
               onTap: () {
                 context.push(AppRoutes.notificationsScreen);
+              },
+            ),
+            _buildMenuItem(
+              title: 'شرح التطبيق',
+              subtitle: 'فهم فكرة المحافظ والحصالات والميزانية',
+              icon: Icons.info_outline_rounded,
+              gradientColors: [
+                const Color(0xFF14B8A6),
+                const Color(0xFF0F766E),
+              ],
+              onTap: () {
+                context.push(AppRoutes.appGuideScreen);
+              },
+            ),
+            _buildMenuItem(
+              title: 'Cloud Backup',
+              subtitle: 'Google Drive manual backup and restore',
+              icon: Icons.cloud_sync_outlined,
+              gradientColors: [
+                const Color(0xFF3B82F6),
+                const Color(0xFF1D4ED8),
+              ],
+              onTap: () {
+                context.push(AppRoutes.cloudBackupScreen);
+              },
+            ),
+            _buildMenuItem(
+              title: 'إعدادات التطبيق',
+              subtitle: 'الاسم والعملة والتنبيهات وإدارة البيانات',
+              icon: Icons.settings_suggest_rounded,
+              gradientColors: [
+                const Color(0xFF6B7280),
+                const Color(0xFF374151),
+              ],
+              onTap: () {
+                context.push(AppRoutes.appSettingsScreen);
               },
             ),
             // 6. إعدادات التطبيق

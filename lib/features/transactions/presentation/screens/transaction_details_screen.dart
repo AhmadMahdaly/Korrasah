@@ -224,7 +224,7 @@ class _CategoryTransactionList extends StatelessWidget {
 
     for (final transaction in transactions) {
       final category = categories.firstWhere(
-        (c) => c.id == transaction.allocationId,
+        (c) => c.id == transaction.primaryCategoryId,
         orElse: () {
           return TransactionCategory(
             id: '',
@@ -399,7 +399,7 @@ class _TransactionListItem extends StatelessWidget {
     final color = isIncome ? Colors.green : Colors.red;
 
     final specificCategory = allCategories.firstWhere(
-      (c) => c.id == transaction.allocationId,
+      (c) => c.id == transaction.primaryCategoryId,
       orElse: () => TransactionCategory(
         id: '',
         name: 'غير معروف',
@@ -864,7 +864,7 @@ class _PieChartCard extends StatelessWidget {
 
     for (final t in transactions) {
       final category = categories.firstWhere(
-        (c) => c.id == t.allocationId,
+        (c) => c.id == t.primaryCategoryId,
         orElse: () => TransactionCategory(
           id: '',
           name: 'في المجهول',

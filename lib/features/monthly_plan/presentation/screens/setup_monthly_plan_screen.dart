@@ -52,12 +52,12 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                   balance: 0,
                 ),
               );
-              final linkedWallets = wallets
-                  .where((w) => w.type == WalletType.sideLinked)
+              final hasalat = wallets
+                  .where((w) => w.type == WalletType.jar)
                   .toList();
 
               final totalIncome = plan.totalPlannedIncome;
-              final linkedWalletsTotal = linkedWallets.fold(
+              final hasalatTotal = hasalat.fold(
                 0.0,
                 (s, w) => s + (w.monthlyAmount ?? 0),
               );
@@ -65,7 +65,7 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
               final totalAllocated =
                   plan.totalBudgetedExpense +
                   plan.totalPlannedDebts +
-                  linkedWalletsTotal +
+                  hasalatTotal +
                   savingsTotal;
               final unallocated = totalIncome - totalAllocated;
 
@@ -132,7 +132,6 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                       ),
                     ),
                     16.verticalSpace,
-
                     _buildHeaderCard(
                       totalIncome,
                       totalAllocated,
@@ -141,13 +140,16 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                     ),
                     24.verticalSpace,
 
-                    _buildSection(
+                    _buildDetailedSection(
                       context: context,
                       title: 'مصادر الدخل',
                       isEmpty: plan.incomes.isEmpty,
                       emptyText: 'لم يتم إضافة مصادر دخل',
                       onAdd: () =>
                           _showAddEditIncomeDialog(context, false, plan),
+                      icon: Icons.payments_outlined,
+                      accentColor: Colors.green,
+                      buttonLabel: 'إضافة دخل',
                       child: Column(
                         children: plan.incomes
                             .map((i) => _buildIncomeItem(context, i, plan))
@@ -169,12 +171,15 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                     ),
                     24.verticalSpace,
 
-                    _buildSection(
+                    _buildDetailedSection(
                       context: context,
                       title: 'المخصصات',
                       isEmpty: plan.expenses.isEmpty,
                       emptyText: 'لم يتم إضافة مخصصات',
                       onAdd: () => _showAddEditAllocationDialog(context, plan),
+                      icon: Icons.pie_chart_outline_rounded,
+                      accentColor: const Color(0xFF2563EB),
+                      buttonLabel: 'إضافة مخصص',
                       child: Column(
                         children: plan.expenses
                             .map(
@@ -189,26 +194,32 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                     ),
                     24.verticalSpace,
 
-                    _buildSection(
+                    _buildDetailedSection(
                       context: context,
-                      title: 'المحافظ المرتبطة',
-                      isEmpty: linkedWallets.isEmpty,
-                      emptyText: 'لم يتم إضافة محافظ مرتبطة',
+                      title: 'الحصالات',
+                      isEmpty: hasalat.isEmpty,
+                      emptyText: 'لم يتم إضافة حصالات',
                       onAdd: () => _showAddEditLinkedWalletDialog(context),
+                      icon: Icons.savings_outlined,
+                      accentColor: const Color(0xFF0F766E),
+                      buttonLabel: 'إضافة حصالة',
                       child: Column(
-                        children: linkedWallets
+                        children: hasalat
                             .map((w) => _buildWalletItem(context, w))
                             .toList(),
                       ),
                     ),
                     24.verticalSpace,
 
-                    _buildSection(
+                    _buildDetailedSection(
                       context: context,
                       title: 'الديون والمتكررة',
                       isEmpty: plan.debts.isEmpty,
                       emptyText: 'لم يتم إضافة ديون',
                       onAdd: () => _showAddEditDebtDialog(context, plan),
+                      icon: Icons.receipt_long_outlined,
+                      accentColor: const Color(0xFFD97706),
+                      buttonLabel: 'إضافة دين',
                       child: Column(
                         children: plan.debts
                             .map((d) => _buildDebtItem(context, d, plan))
@@ -393,6 +404,183 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildCyclePlanningCard({
+    required String dateRangeStr,
+    required double unallocated,
+  }) {
+    final isBalanced = unallocated >= 0;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 18.r,
+                backgroundColor: Colors.indigo.withAlpha(18),
+                child: Icon(
+                  Icons.calendar_month_outlined,
+                  size: 18.r,
+                  color: Colors.indigo,
+                ),
+              ),
+              12.horizontalSpace,
+              Expanded(
+                child: Text(
+                  'الدورة الحالية للخطة',
+                  style: AppTextStyle.style14Bold,
+                ),
+              ),
+            ],
+          ),
+          10.verticalSpace,
+          Text(
+            dateRangeStr,
+            style: AppTextStyle.style12Bold.copyWith(
+              color: AppColors.primaryColor,
+            ),
+          ),
+          8.verticalSpace,
+          Text(
+            'ابدأ من هنا: سجّل الدخل، ثم وزّعه على المخصصات والحصالات والديون والتوفير قبل تأكيد بداية الخطة.',
+            style: AppTextStyle.style12W500.copyWith(
+              color: Colors.grey.shade700,
+              height: 1.5,
+            ),
+          ),
+          12.verticalSpace,
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+            decoration: BoxDecoration(
+              color: (isBalanced ? Colors.green : Colors.red).withAlpha(14),
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isBalanced ? Icons.check_circle_outline : Icons.error_outline,
+                  size: 18.r,
+                  color: isBalanced ? Colors.green : Colors.red,
+                ),
+                8.horizontalSpace,
+                Expanded(
+                  child: Text(
+                    isBalanced
+                        ? 'الخطة متوازنة حاليًا ويمكنك الاستمرار في توزيع البنود.'
+                        : 'الخطة ما زالت بالسالب. قلل الالتزامات أو زد الدخل قبل التأكيد.',
+                    style: AppTextStyle.style12W500.copyWith(
+                      color: isBalanced
+                          ? Colors.green.shade800
+                          : Colors.red.shade800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBudgetModelInfoCard({
+    required double allocationsTotal,
+    required double hasalatTotal,
+    required double debtsTotal,
+    required double savingsTotal,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 18.r,
+                backgroundColor: AppColors.primaryColor.withAlpha(20),
+                child: Icon(
+                  Icons.account_tree_outlined,
+                  size: 18.r,
+                  color: AppColors.primaryColor,
+                ),
+              ),
+              12.horizontalSpace,
+              Expanded(
+                child: Text(
+                  'هيكل فكرة الميزانية',
+                  style: AppTextStyle.style14Bold,
+                ),
+              ),
+            ],
+          ),
+          10.verticalSpace,
+          Text(
+            'الدخل هنا لا يذهب مباشرة للمصروف فقط. هو يتوزع على المخصصات والحصالات والديون والتوفير، وبعدها تتابع التنفيذ من المحافظ الفعلية.',
+            style: AppTextStyle.style12W500.copyWith(
+              color: Colors.grey.shade700,
+              height: 1.5,
+            ),
+          ),
+          12.verticalSpace,
+          Wrap(
+            spacing: 8.w,
+            runSpacing: 8.h,
+            children: [
+              _buildInfoPill(
+                'المخصصات',
+                allocationsTotal,
+                const Color(0xFF2563EB),
+              ),
+              _buildInfoPill('الحصالات', hasalatTotal, const Color(0xFF0F766E)),
+              _buildInfoPill('الديون', debtsTotal, const Color(0xFFD97706)),
+              _buildInfoPill('التوفير', savingsTotal, const Color(0xFFFF7A00)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoPill(String label, double value, Color color) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+      decoration: BoxDecoration(
+        color: color.withAlpha(18),
+        borderRadius: BorderRadius.circular(999.r),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8.w,
+            height: 8.w,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          8.horizontalSpace,
+          Text(
+            '$label ${value.toStringAsFixed(2)}',
+            style: AppTextStyle.style12Bold.copyWith(color: color),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHeaderCard(
     double income,
     double allocated,
@@ -477,66 +665,170 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSection({
+  Widget _buildDetailedSection({
     required BuildContext context,
     required String title,
     required bool isEmpty,
     required String emptyText,
     required VoidCallback onAdd,
     required Widget child,
+    String? subtitle,
+    IconData? icon,
+    Color accentColor = AppColors.secondaryTextColor,
+    String buttonLabel = 'إضافة',
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              title,
-              style: AppTextStyle.style18Bold.copyWith(
-                color: AppColors.secondaryTextColor,
-              ),
-            ),
-            ElevatedButton.icon(
-              onPressed: onAdd,
-              icon: const Icon(Icons.add, size: 16, color: Colors.white),
-              label: Text(
-                'إضافة',
-                style: AppTextStyle.style12W500.copyWith(color: Colors.white),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryColor,
-                minimumSize: Size(80.w, 36.h),
-                padding: EdgeInsets.symmetric(horizontal: 12.w),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.r),
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (icon != null) ...[
+                CircleAvatar(
+                  radius: 18.r,
+                  backgroundColor: accentColor.withAlpha(18),
+                  child: Icon(icon, size: 18.r, color: accentColor),
+                ),
+                12.horizontalSpace,
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppTextStyle.style18Bold.copyWith(
+                        color: AppColors.secondaryTextColor,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      4.verticalSpace,
+                      Text(
+                        subtitle,
+                        style: AppTextStyle.style12W500.copyWith(
+                          color: Colors.grey.shade600,
+                          height: 1.45,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-            ),
-          ],
-        ),
-        12.verticalSpace,
-        if (isEmpty)
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(vertical: 30.h),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: Colors.black12),
-            ),
-            child: Center(
-              child: Text(
-                emptyText,
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 14.sp),
+              12.horizontalSpace,
+              ElevatedButton.icon(
+                onPressed: onAdd,
+                icon: const Icon(Icons.add, size: 16, color: Colors.white),
+                label: Text(
+                  buttonLabel,
+                  style: AppTextStyle.style12W500.copyWith(color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accentColor,
+                  minimumSize: Size(96.w, 36.h),
+                  padding: EdgeInsets.symmetric(horizontal: 12.w),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(999.r),
+                  ),
+                ),
               ),
-            ),
-          )
-        else
-          child,
-      ],
+            ],
+          ),
+          16.verticalSpace,
+          if (isEmpty)
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(vertical: 30.h, horizontal: 16.w),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: Colors.black12),
+              ),
+              child: Center(
+                child: Text(
+                  emptyText,
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 14.sp,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            )
+          else
+            child,
+        ],
+      ),
     );
   }
+
+  // Widget _buildSection({
+  //   required BuildContext context,
+  //   required String title,
+  //   required bool isEmpty,
+  //   required String emptyText,
+  //   required VoidCallback onAdd,
+  //   required Widget child,
+  // }) {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Row(
+  //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //         children: [
+  //           Text(
+  //             title,
+  //             style: AppTextStyle.style18Bold.copyWith(
+  //               color: AppColors.secondaryTextColor,
+  //             ),
+  //           ),
+  //           ElevatedButton.icon(
+  //             onPressed: onAdd,
+  //             icon: const Icon(Icons.add, size: 16, color: Colors.white),
+  //             label: Text(
+  //               'إضافة',
+  //               style: AppTextStyle.style12W500.copyWith(color: Colors.white),
+  //             ),
+  //             style: ElevatedButton.styleFrom(
+  //               backgroundColor: AppColors.primaryColor,
+  //               minimumSize: Size(80.w, 36.h),
+  //               padding: EdgeInsets.symmetric(horizontal: 12.w),
+  //               shape: RoundedRectangleBorder(
+  //                 borderRadius: BorderRadius.circular(8.r),
+  //               ),
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //       12.verticalSpace,
+  //       if (isEmpty)
+  //         Container(
+  //           width: double.infinity,
+  //           padding: EdgeInsets.symmetric(vertical: 30.h),
+  //           decoration: BoxDecoration(
+  //             color: Colors.white,
+  //             borderRadius: BorderRadius.circular(12.r),
+  //             border: Border.all(color: Colors.black12),
+  //           ),
+  //           child: Center(
+  //             child: Text(
+  //               emptyText,
+  //               style: TextStyle(color: Colors.grey.shade500, fontSize: 14.sp),
+  //             ),
+  //           ),
+  //         )
+  //       else
+  //         child,
+  //     ],
+  //   );
+  // }
 
   Widget _buildIncomeItem(
     BuildContext context,
@@ -698,7 +990,7 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
         children: [
           CircleAvatar(
             backgroundColor: Colors.teal.shade50,
-            child: const Icon(Icons.account_balance_wallet, color: Colors.teal),
+            child: const Icon(Icons.savings_outlined, color: Colors.teal),
           ),
           12.horizontalSpace,
           Expanded(
@@ -713,14 +1005,19 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                 ),
                 4.verticalSpace,
                 Text(
-                  '$recurrenceStr - ${_getExecutionTypeName(w.executionType)}',
+                  'تمويل من الخطة - $recurrenceStr',
+                  style: AppTextStyle.style12W500.copyWith(color: Colors.teal),
+                ),
+                2.verticalSpace,
+                Text(
+                  _getExecutionTypeName(w.executionType),
                   style: AppTextStyle.style12W500.copyWith(color: Colors.grey),
                 ),
               ],
             ),
           ),
           Text(
-            w.monthlyAmount?.toStringAsFixed(2) ?? '0.00',
+            w.plannedMonthlyFunding.toStringAsFixed(2),
             style: AppTextStyle.style14Bold.copyWith(
               color: Colors.black87,
             ),
@@ -1095,7 +1392,7 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
             id: const Uuid().v4(),
             name: name,
             balance: 0.0,
-            type: WalletType.sideLinked,
+            type: WalletType.jar,
             monthlyAmount: amount,
             executionType: executionTypeEnum,
             sourceWalletId: sourceId,
@@ -1244,7 +1541,7 @@ class SetupMonthlyPlanScreen extends StatelessWidget {
                   id: const Uuid().v4(),
                   name: nameCtrl.text.trim(),
                   balance: 0,
-                  type: WalletType.sideIndependent,
+                  type: WalletType.real,
                 );
                 context.read<WalletCubit>().addWallet(w);
                 Navigator.pop(c);

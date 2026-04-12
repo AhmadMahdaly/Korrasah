@@ -40,9 +40,9 @@ class _MainLayoutState extends State<MainLayout> {
         final cubit = context.read<MainLayoutCubit>();
         cubit.backPressCount++;
 
-        if (cubit.backPressCount == 1 && cubit.currentIndex != 2) {
-          cubit.changeNavBarIndex(2);
-        } else if (cubit.backPressCount == 1 && cubit.currentIndex == 2) {
+        if (cubit.backPressCount == 1 && cubit.currentIndex != 0) {
+          cubit.changeNavBarIndex(0);
+        } else if (cubit.backPressCount == 1 && cubit.currentIndex == 0) {
           ScaffoldMessenger.of(context)
             ..removeCurrentSnackBar()
             ..showSnackBar(
@@ -91,9 +91,9 @@ class _MainLayoutState extends State<MainLayout> {
               unselectedItemColor: AppColors.textGreyColor,
               items: [
                 BottomNavigationBarItem(
-                  icon: SvgImage(
-                    imagePath: 'assets/image/svg/money-bag-outline.svg',
-                    height: cubit.currentIndex == 0 ? 30.r : 24.r,
+                  icon: Icon(
+                    Icons.home_rounded,
+                    size: cubit.currentIndex == 0 ? 30.r : 24.r,
                     color: cubit.currentIndex == 0
                         ? AppColors.primaryColor
                         : AppColors.textGreyColor,
